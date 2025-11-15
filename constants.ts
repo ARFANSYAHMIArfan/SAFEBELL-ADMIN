@@ -68,8 +68,8 @@ export const UI_TEXT = {
 };
 
 export const TELEGRAM_CONFIG = {
-    API_KEY: "7483651932:AAH9g2p8i_4L-nF4lK1e2c3b4d5e6f7g8h",
-    CHAT_ID: "-1002142735109"
+    API_KEY: "8442585359:AAEBt1xupGHvayRPMRFlumdBSnbbcBV_-74/",
+    CHAT_ID: "-1003022468499"
 };
 
 export const CEREBRAS_CONFIG = {
