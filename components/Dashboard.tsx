@@ -32,6 +32,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
     const [isLoadingReports, setIsLoadingReports] = useState(true);
     const [settings, setSettings] = useState<WebsiteSettings>({ isFormDisabled: false, isMaintenanceLockEnabled: false, maintenancePin: '' });
     const [pinInput, setPinInput] = useState('');
+    const [fallbackKeyInput, setFallbackKeyInput] = useState('');
     const [activeTab, setActiveTab] = useState<'reports' | 'media' | 'settings'>('reports');
     const [expandedReportId, setExpandedReportId] = useState<string | null>(null);
     const [pinError, setPinError] = useState('');
@@ -67,6 +68,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
         fetchGlobalSettings().then(initialSettings => {
             setSettings(initialSettings);
             setPinInput(initialSettings.maintenancePin);
+            setFallbackKeyInput(initialSettings.fallbackOpenAIKey || '');
         });
 
         // Polling for new reports
@@ -94,13 +96,13 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
     
     const handleRunChecks = useCallback(async () => {
         setIsCheckingStatus(true);
-        const [tg, reportCount, perms] = await Promise.all([
+        const [tg, reportCount, perms, openai] = await Promise.all([
             checkTelegramApi(),
             getReportCount(),
             checkPermissions(),
+            checkOpenAIConfig(),
         ]);
         const cerebras = checkCerebrasConfig();
-        const openai = checkOpenAIConfig();
         
         setSystemStatus({
             telegram: tg,
@@ -127,7 +129,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
             }
         }
         
-        const newSettings = { ...settings, maintenancePin: pinInput };
+        const newSettings = { 
+            ...settings, 
+            maintenancePin: pinInput,
+            fallbackOpenAIKey: fallbackKeyInput.trim(),
+        };
         setIsSaving(true);
         try {
             await updateGlobalSettings(newSettings);
@@ -378,10 +384,28 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
                     </div>
                  )}
             </div>
+
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">{UI_TEXT.FALLBACK_API_CONFIG}</h3>
+                <div className="p-4 border dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{UI_TEXT.FALLBACK_API_DESC}</p>
+                    <div>
+                        <label htmlFor="fallback-key" className="block text-sm font-medium text-gray-700 dark:text-gray-300">{UI_TEXT.FALLBACK_API_KEY_LABEL}</label>
+                        <input
+                          type="password"
+                          id="fallback-key"
+                          value={fallbackKeyInput}
+                          onChange={(e) => setFallbackKeyInput(e.target.value)}
+                          placeholder="sk-..."
+                          className="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#D78F70] focus:border-[#D78F70]"
+                        />
+                    </div>
+                </div>
+            </div>
             
             <button 
                 onClick={handleSettingsSave} 
-                className="px-6 py-2 bg-gradient-to-r from-[#D78F70] to-[#E8A87C] text-white font-bold rounded-lg shadow-lg hover:shadow-xl disabled:opacity-50"
+                className="mt-6 px-6 py-2 bg-gradient-to-r from-[#D78F70] to-[#E8A87C] text-white font-bold rounded-lg shadow-lg hover:shadow-xl disabled:opacity-50"
                 disabled={isSaving}
             >
                 {isSaving ? 'Menyimpan...' : 'Simpan Tetapan'}

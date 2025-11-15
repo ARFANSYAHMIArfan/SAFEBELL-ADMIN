@@ -62,6 +62,9 @@ export const UI_TEXT = {
   PERMISSION_PROMPT: "Perlu Kelulusan",
   RUN_CHECKS: "Jalankan Semakan",
   CHECKING_STATUS: "Menyemak...",
+  FALLBACK_API_CONFIG: "Konfigurasi API Sandaran",
+  FALLBACK_API_DESC: "Masukkan kunci API untuk perkhidmatan sandaran (cth: OpenAI) sekiranya API utama gagal. Ini akan mengatasi kunci yang dikonfigurasikan secara lalai.",
+  FALLBACK_API_KEY_LABEL: "Kunci API OpenAI Sandaran",
 };
 
 export const TELEGRAM_CONFIG = {

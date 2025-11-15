@@ -2,13 +2,14 @@ import { WebsiteSettings } from '../types';
 
 const SETTINGS_KEY = 'safe_app_settings'; // localStorage cache key
 // Switched to a key-value store that supports GET requests to enable global settings.
-const SETTINGS_ENDPOINT = 'https://kvdb.io/ASfCj8jT2t9z4KqX1LwYxS/app-settings';
+const SETTINGS_ENDPOINT = 'https://kvdb.io/z4aB7cE9fG2iL5nO8pS1rUvYxZ/app-settings';
 
 // Default settings
 const defaultSettings: WebsiteSettings = {
     isFormDisabled: false,
     isMaintenanceLockEnabled: false,
     maintenancePin: '',
+    fallbackOpenAIKey: '',
 };
 
 /**

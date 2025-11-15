@@ -1,12 +1,17 @@
 import { OPENAI_CONFIG } from '../constants';
+import { fetchGlobalSettings } from './settingsService';
 
-// The primary project key is out of quota. Using the service account key as a replacement.
-const API_KEY = OPENAI_CONFIG.SERVICE_ACCOUNT_API;
+// The service account key from constants acts as the ultimate fallback.
+const FALLBACK_KEY_FROM_CONSTANTS = OPENAI_CONFIG.SERVICE_ACCOUNT_API;
 
 export const analyzeReportWithOpenAI = async (reportText: string): Promise<string> => {
+    // Fetch the latest settings from the backend to get the dynamically configured key.
+    const settings = await fetchGlobalSettings();
+    const API_KEY = settings.fallbackOpenAIKey || FALLBACK_KEY_FROM_CONSTANTS;
+
     if (!API_KEY) {
-        console.warn("OpenAI Service Account API key not found.");
-        throw new Error("OpenAI Service Account API key not configured.");
+        console.warn("OpenAI API key not found in settings or constants.");
+        throw new Error("OpenAI API key not configured.");
     }
 
     const prompt = `

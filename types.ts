@@ -15,4 +15,5 @@ export interface WebsiteSettings {
     isFormDisabled: boolean;
     isMaintenanceLockEnabled: boolean;
     maintenancePin: string;
+    fallbackOpenAIKey?: string;
 }

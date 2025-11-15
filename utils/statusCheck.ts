@@ -1,5 +1,6 @@
 import { TELEGRAM_CONFIG, OPENAI_CONFIG, CEREBRAS_CONFIG, UI_TEXT } from '../constants';
 import { getReports } from './storage';
+import { fetchGlobalSettings } from '../services/settingsService';
 
 type Status = 'ok' | 'error' | 'warn' | 'info';
 
@@ -48,13 +49,27 @@ export const checkCerebrasConfig = (): StatusItem => {
 };
 
 /**
- * Checks if the OpenAI API key is configured.
+ * Checks if the OpenAI API key is configured either in constants or dynamic settings.
  */
-export const checkOpenAIConfig = (): StatusItem => {
-  if (OPENAI_CONFIG.API_KEY && OPENAI_CONFIG.API_KEY.startsWith('sk-')) {
-    return { status: 'ok', message: UI_TEXT.STATUS_OK };
+export const checkOpenAIConfig = async (): Promise<StatusItem> => {
+  try {
+    const settings = await fetchGlobalSettings();
+    const keyFromSettings = settings.fallbackOpenAIKey;
+    const keyFromConstants = OPENAI_CONFIG.API_KEY || OPENAI_CONFIG.SERVICE_ACCOUNT_API;
+
+    if ((keyFromSettings && keyFromSettings.startsWith('sk-')) || (keyFromConstants && keyFromConstants.startsWith('sk-'))) {
+      return { status: 'ok', message: UI_TEXT.STATUS_OK };
+    }
+    return { status: 'warn', message: UI_TEXT.STATUS_UNCONFIGURED };
+  } catch (error) {
+    console.error("Failed to check OpenAI config due to settings fetch error:", error);
+    // If settings fail to load, just check constants as a fallback check
+    const keyFromConstants = OPENAI_CONFIG.API_KEY || OPENAI_CONFIG.SERVICE_ACCOUNT_API;
+    if (keyFromConstants && keyFromConstants.startsWith('sk-')) {
+       return { status: 'ok', message: `${UI_TEXT.STATUS_OK} (Default)` };
+    }
+    return { status: 'error', message: 'Failed to Load Settings' };
   }
-  return { status: 'warn', message: UI_TEXT.STATUS_UNCONFIGURED };
 };
 
 /**
