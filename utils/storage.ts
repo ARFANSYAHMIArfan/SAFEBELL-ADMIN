@@ -31,6 +31,34 @@ export const deleteReport = async (reportId: string): Promise<void> => {
     await saveReports(updatedReports);
 };
 
+export const mergeAndSaveReports = async (newReports: Report[]): Promise<void> => {
+    const existingReports = await fetchReports();
+    const reportsMap = new Map<string, Report>();
+
+    // Add existing reports to the map
+    for (const report of existingReports) {
+        reportsMap.set(report.id, report);
+    }
+
+    // Add/update with new reports
+    for (const report of newReports) {
+        // Basic validation of the report object
+        if (report.id && report.timestamp && report.type) { // content can be null/undefined for media
+             reportsMap.set(report.id, report);
+        } else {
+            console.warn("Skipping invalid report object from JSON:", report);
+        }
+    }
+    
+    let mergedReports = Array.from(reportsMap.values());
+
+    // Re-sort all reports by timestamp descending to maintain order
+    mergedReports.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    
+    await saveReports(mergedReports);
+};
+
+
 // Settings Management (local cache for maintenance lock)
 export const getSettings = (): WebsiteSettings => {
     try {

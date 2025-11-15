@@ -4,9 +4,9 @@ import { UI_TEXT, ADMIN_DOWNLOAD_PIN } from '../constants';
 import { 
     LogoutIcon, SettingsIcon, ShieldIcon, TrashIcon, ChevronDownIcon, 
     ShareIcon, DownloadIcon, ArchiveBoxIcon, BellIcon, ServerIcon, 
-    DatabaseIcon, CheckCircleIcon, XCircleIcon, ExclamationTriangleIcon 
+    DatabaseIcon, CheckCircleIcon, XCircleIcon, ExclamationTriangleIcon, UploadIcon 
 } from './icons';
-import { getReports, deleteReport, getSettings as getLocalSettings } from '../utils/storage';
+import { getReports, deleteReport, mergeAndSaveReports } from '../utils/storage';
 import { fetchGlobalSettings, updateGlobalSettings } from '../services/settingsService';
 import { downloadAsPdf, downloadAsDocx } from '../services/downloadService';
 import { 
@@ -44,6 +44,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
     const [notification, setNotification] = useState<{ id: string; message: string } | null>(null);
     const [systemStatus, setSystemStatus] = useState<SystemStatus | null>(null);
     const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+    const [uploadStatus, setUploadStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
     const reportsRef = useRef(reports);
 
     useEffect(() => {
@@ -199,6 +200,50 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
         } else {
             setDownloadPinError(UI_TEXT.INVALID_PIN);
         }
+    };
+
+    const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        const inputElement = event.target;
+        if (!file) return;
+
+        setUploadStatus(null);
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const text = e.target?.result;
+                if (typeof text !== 'string') {
+                    throw new Error("Gagal membaca kandungan fail.");
+                }
+                const importedReports: Report[] = JSON.parse(text);
+
+                if (!Array.isArray(importedReports)) {
+                    throw new Error("Fail JSON tidak sah. Ia sepatutnya mengandungi senarai (array) laporan.");
+                }
+                
+                await mergeAndSaveReports(importedReports);
+                
+                setUploadStatus({ type: 'success', message: `Berjaya mengimport dan menggabungkan ${importedReports.length} laporan.` });
+                
+                // Refresh the view
+                await fetchAndSetReports();
+
+            } catch (error) {
+                console.error("Gagal mengimport laporan:", error);
+                const errorMessage = error instanceof Error ? error.message : "Ralat tidak diketahui berlaku.";
+                setUploadStatus({ type: 'error', message: `Gagal mengimport: ${errorMessage}` });
+            } finally {
+                inputElement.value = ''; // Reset file input
+            }
+        };
+
+        reader.onerror = () => {
+            setUploadStatus({ type: 'error', message: 'Gagal membaca fail.' });
+            inputElement.value = ''; // Reset file input
+        };
+
+        reader.readAsText(file);
     };
 
     const textReports = reports.filter(r => r.type === 'text');
@@ -393,6 +438,32 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
                     <ArchiveBoxIcon className="w-5 h-5" />
                     <span>{UI_TEXT.DOWNLOAD_ALL_REPORTS}</span>
                 </button>
+            </div>
+            
+            <div className="p-4 border border-blue-300 dark:border-blue-700 rounded-lg bg-blue-50 dark:bg-blue-900/30">
+                <h3 className="font-semibold text-blue-800 dark:text-blue-200">Import Data Laporan</h3>
+                <p className="text-xs text-blue-700 dark:text-blue-400 mt-1">
+                    Muat naik sejarah laporan daripada fail JSON. Laporan sedia ada dengan ID yang sama akan dikemas kini.
+                </p>
+                <input
+                    type="file"
+                    id="json-upload"
+                    className="hidden"
+                    accept="application/json"
+                    onChange={handleFileUpload}
+                />
+                <label
+                    htmlFor="json-upload"
+                    className="cursor-pointer mt-3 inline-flex items-center space-x-2 px-4 py-2 text-sm font-semibold rounded-lg shadow-sm transition-colors duration-200 bg-blue-500 text-white hover:bg-blue-600"
+                >
+                    <UploadIcon className="w-5 h-5" />
+                    <span>Pilih Fail JSON...</span>
+                </label>
+                {uploadStatus && (
+                    <p className={`mt-2 text-xs font-semibold ${uploadStatus.type === 'success' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                        {uploadStatus.message}
+                    </p>
+                )}
             </div>
         </div>
     );
