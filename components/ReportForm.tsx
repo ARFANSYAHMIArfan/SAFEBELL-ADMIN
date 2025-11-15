@@ -4,7 +4,7 @@ import { UI_TEXT, TEXT_CHAR_LIMIT } from '../constants';
 import { MicIcon, TextIcon, VideoIcon, SendIcon, CheckCircleIcon, XCircleIcon, SparkIcon, LockClosedIcon, RefreshIcon } from './icons';
 import AudioRecorder from './AudioRecorder';
 import VideoRecorder from './VideoRecorder';
-import { analyzeReportWithGemini } from '../services/geminiService';
+import { analyzeReportWithAI } from '../services/geminiService';
 import { sendTextReport, sendAudioReport, sendVideoReport } from '../services/telegramService';
 import { addReport } from '../utils/storage';
 
@@ -47,9 +47,9 @@ const ReportForm: React.FC<ReportFormProps> = ({ settings }) => {
       if (text.trim()) {
         setLoadingMessage(UI_TEXT.ANALYZING_REPORT);
         try {
-          analysisResult = await analyzeReportWithGemini(text);
+          analysisResult = await analyzeReportWithAI(text);
         } catch (analysisError) {
-            console.error("Gemini analysis failed:", analysisError);
+            console.error("AI analysis failed:", analysisError);
             setError(UI_TEXT.ERROR_ANALYSIS);
             analysisResult = "Analisis AI tidak dapat dijalankan.";
         }
@@ -59,7 +59,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ settings }) => {
       
       const reportId = Date.now().toString(36) + Math.random().toString(36).substring(2);
 
-      const caption = `*Laporan Kecemasan Baru Diterima*\n*ID Laporan:* \`${reportId}\`\n\n*Jenis:* ${reportType.toUpperCase()}\n\n*Butiran Laporan:*\n${text}\n\n---\n\n*Analisis AI (Gemini/OpenAI):*\n${analysisResult}`;
+      const caption = `*Laporan Kecemasan Baru Diterima*\n*ID Laporan:* \`${reportId}\`\n\n*Jenis:* ${reportType.toUpperCase()}\n\n*Butiran Laporan:*\n${text}\n\n---\n\n*Analisis AI (Cerebras/OpenAI):*\n${analysisResult}`;
 
       switch (reportType) {
         case 'text':

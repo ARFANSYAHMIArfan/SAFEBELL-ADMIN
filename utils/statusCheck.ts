@@ -1,4 +1,4 @@
-import { TELEGRAM_CONFIG, OPENAI_CONFIG, UI_TEXT } from '../constants';
+import { TELEGRAM_CONFIG, OPENAI_CONFIG, CEREBRAS_CONFIG, UI_TEXT } from '../constants';
 import { getReports } from './storage';
 
 type Status = 'ok' | 'error' | 'warn' | 'info';
@@ -10,7 +10,7 @@ interface StatusItem {
 
 export interface SystemStatus {
   telegram: StatusItem;
-  gemini: StatusItem;
+  cerebras: StatusItem;
   openai: StatusItem;
   storage: StatusItem;
   permissions: {
@@ -38,10 +38,10 @@ export const checkTelegramApi = async (): Promise<StatusItem> => {
 };
 
 /**
- * Checks if the Gemini API key is configured.
+ * Checks if the Cerebras API key is configured.
  */
-export const checkGeminiConfig = (): StatusItem => {
-  if (process.env.API_KEY && process.env.API_KEY.length > 10) {
+export const checkCerebrasConfig = (): StatusItem => {
+  if (CEREBRAS_CONFIG.API_KEY && CEREBRAS_CONFIG.API_KEY.startsWith('csk-')) {
     return { status: 'ok', message: UI_TEXT.STATUS_OK };
   }
   return { status: 'warn', message: UI_TEXT.STATUS_UNCONFIGURED };

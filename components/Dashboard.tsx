@@ -10,7 +10,7 @@ import { getReports, deleteReport } from '../utils/storage';
 import { fetchGlobalSettings, updateGlobalSettings } from '../services/settingsService';
 import { downloadAsPdf, downloadAsDocx } from '../services/downloadService';
 import { 
-    checkTelegramApi, checkGeminiConfig, checkOpenAIConfig, 
+    checkTelegramApi, checkCerebrasConfig, checkOpenAIConfig, 
     getLocalStorageUsage, checkPermissions, SystemStatus 
 } from '../utils/statusCheck';
 
@@ -91,12 +91,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
             getLocalStorageUsage(),
             checkPermissions(),
         ]);
-        const gemini = checkGeminiConfig();
+        const cerebras = checkCerebrasConfig();
         const openai = checkOpenAIConfig();
         
         setSystemStatus({
             telegram: tg,
-            gemini,
+            cerebras,
             openai,
             storage,
             permissions: perms,
@@ -266,18 +266,18 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
         );
     };
 
-    const renderStatusBadge = (status: 'ok' | 'error' | 'warn' | 'info') => {
+    const renderStatusBadge = (statusItem: { status: 'ok' | 'error' | 'warn' | 'info'; message: string }) => {
         const styles = {
             ok: { icon: <CheckCircleIcon className="w-5 h-5 text-green-500" />, text: 'text-green-700 dark:text-green-400', bg: 'bg-green-100 dark:bg-green-900/50' },
             error: { icon: <XCircleIcon className="w-5 h-5 text-red-500" />, text: 'text-red-700 dark:text-red-400', bg: 'bg-red-100 dark:bg-red-900/50' },
             warn: { icon: <ExclamationTriangleIcon className="w-5 h-5 text-yellow-500" />, text: 'text-yellow-700 dark:text-yellow-400', bg: 'bg-yellow-100 dark:bg-yellow-900/50' },
             info: { icon: <DatabaseIcon className="w-5 h-5 text-blue-500" />, text: 'text-blue-700 dark:text-blue-400', bg: 'bg-blue-100 dark:bg-blue-900/50' },
         };
-        const selected = styles[status];
+        const selected = styles[statusItem.status];
         return (
             <span className={`flex items-center space-x-2 px-2 py-1 text-xs font-medium rounded-full ${selected.bg} ${selected.text}`}>
                 {selected.icon}
-                <span>{systemStatus?.telegram.message}</span>
+                <span>{statusItem.message}</span>
             </span>
         );
     };
@@ -343,15 +343,15 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
                                 <h4 className="font-semibold text-gray-700 dark:text-gray-300">{UI_TEXT.API_STATUS}</h4>
                                 <div className="flex items-center justify-between text-sm">
                                     <span className="flex items-center"><ServerIcon className="w-4 h-4 mr-2" />{UI_TEXT.TELEGRAM_API}</span>
-                                    {renderStatusBadge(systemStatus.telegram.status)}
+                                    {renderStatusBadge(systemStatus.telegram)}
                                 </div>
                                 <div className="flex items-center justify-between text-sm">
-                                    <span className="flex items-center"><ServerIcon className="w-4 h-4 mr-2" />{UI_TEXT.GEMINI_API}</span>
-                                    {renderStatusBadge(systemStatus.gemini.status)}
+                                    <span className="flex items-center"><ServerIcon className="w-4 h-4 mr-2" />{UI_TEXT.CEREBRAS_API}</span>
+                                    {renderStatusBadge(systemStatus.cerebras)}
                                 </div>
                                  <div className="flex items-center justify-between text-sm">
                                     <span className="flex items-center"><ServerIcon className="w-4 h-4 mr-2" />{UI_TEXT.OPENAI_API}</span>
-                                    {renderStatusBadge(systemStatus.openai.status)}
+                                    {renderStatusBadge(systemStatus.openai)}
                                 </div>
                             </div>
                              {/* Storage and Permissions */}
@@ -359,12 +359,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
                                 <h4 className="font-semibold text-gray-700 dark:text-gray-300">{UI_TEXT.LOCAL_STORAGE}</h4>
                                 <div className="flex items-center justify-between text-sm">
                                     <span className="flex items-center"><DatabaseIcon className="w-4 h-4 mr-2" />{UI_TEXT.REPORTS_STORED}</span>
-                                    {renderStatusBadge(systemStatus.storage.status)}
+                                    {renderStatusBadge(systemStatus.storage)}
                                 </div>
                                 <h4 className="font-semibold text-gray-700 dark:text-gray-300 pt-2">{UI_TEXT.BROWSER_PERMISSIONS}</h4>
-                                 <div className="flex items-center justify-between text-sm"><span>Kamera</span>{renderStatusBadge(systemStatus.permissions.camera.status)}</div>
-                                 <div className="flex items-center justify-between text-sm"><span>Mikrofon</span>{renderStatusBadge(systemStatus.permissions.microphone.status)}</div>
-                                 <div className="flex items-center justify-between text-sm"><span>Lokasi</span>{renderStatusBadge(systemStatus.permissions.geolocation.status)}</div>
+                                 <div className="flex items-center justify-between text-sm"><span>Kamera</span>{renderStatusBadge(systemStatus.permissions.camera)}</div>
+                                 <div className="flex items-center justify-between text-sm"><span>Mikrofon</span>{renderStatusBadge(systemStatus.permissions.microphone)}</div>
+                                 <div className="flex items-center justify-between text-sm"><span>Lokasi</span>{renderStatusBadge(systemStatus.permissions.geolocation)}</div>
                             </div>
                          </div>
                      )}

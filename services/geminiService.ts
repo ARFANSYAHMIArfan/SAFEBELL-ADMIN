@@ -1,21 +1,18 @@
-import { GoogleGenAI } from "@google/genai";
 import { analyzeReportWithOpenAI } from './openaiService';
-import { OPENAI_CONFIG } from '../constants';
+import { CEREBRAS_CONFIG, OPENAI_CONFIG } from '../constants';
 
 // Ensure the API keys are available
-const GEMINI_API_KEY = process.env.API_KEY;
+const CEREBRAS_API_KEY = CEREBRAS_CONFIG.API_KEY;
 const OPENAI_API_KEY = OPENAI_CONFIG.API_KEY;
 
-if (!GEMINI_API_KEY) {
-  console.warn("Gemini API key not found. Will attempt to use OpenAI as a backup.");
+if (!CEREBRAS_API_KEY) {
+  console.warn("Cerebras API key not found. Will attempt to use OpenAI as a backup.");
 }
 if (!OPENAI_API_KEY) {
   console.warn("OpenAI API key not found. Fallback will not be available.");
 }
 
-const ai = GEMINI_API_KEY ? new GoogleGenAI({ apiKey: GEMINI_API_KEY }) : null;
-
-export const analyzeReportWithGemini = async (reportText: string): Promise<string> => {
+export const analyzeReportWithAI = async (reportText: string): Promise<string> => {
   const prompt = `
     Anda adalah seorang penganalisis keselamatan dan responden kecemasan yang cekap dan terlatih.
     Analisis laporan kecemasan berikut yang diterima.
@@ -30,29 +27,39 @@ export const analyzeReportWithGemini = async (reportText: string): Promise<strin
     Pastikan jawapan anda dalam Bahasa Melayu, jelas, objektif, dan profesional.
   `;
   
-  // --- Primary: Try Gemini ---
-  if (ai) { // `ai` is only initialized if GEMINI_API_KEY is present
+  // --- Primary: Try Cerebras ---
+  if (CEREBRAS_API_KEY) {
     try {
-      console.log("Attempting analysis with Gemini...");
-      const model = "gemini-2.5-pro";
+        console.log("Attempting analysis with Cerebras...");
+        const response = await fetch("https://api.cerebras.com/v1/chat/completions", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${CEREBRAS_API_KEY}`,
+            },
+            body: JSON.stringify({
+                model: "btlm-3b-8k-chat", // A reasonable guess for a Cerebras model
+                messages: [{ role: "user", content: prompt }],
+                temperature: 0.5,
+            }),
+        });
 
-      const response = await ai.models.generateContent({
-        model: model,
-        contents: prompt,
-        config: {
-          thinkingConfig: { thinkingBudget: 32768 },
-          temperature: 0.5,
-        },
-      });
-      console.log("Gemini analysis successful.");
-      return response.text;
-    } catch (geminiError) {
-      console.error("Error calling Gemini API:", geminiError);
-      console.warn("Gemini API failed. Falling back to OpenAI.");
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error("Cerebras API Error:", errorData);
+            throw new Error(`Cerebras API request failed: ${errorData.error?.message || response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log("Cerebras analysis successful.");
+        return data.choices[0]?.message?.content?.trim() || "Tidak dapat mendapatkan analisis daripada Cerebras.";
+    } catch (cerebrasError) {
+      console.error("Error calling Cerebras API:", cerebrasError);
+      console.warn("Cerebras API failed. Falling back to OpenAI.");
       // Fall through to the OpenAI logic below
     }
   } else {
-    console.log("Gemini API key not found. Attempting to use OpenAI as primary.");
+    console.log("Cerebras API key not found. Attempting to use OpenAI as primary.");
   }
   
   // --- Fallback: Try OpenAI ---
@@ -63,7 +70,7 @@ export const analyzeReportWithGemini = async (reportText: string): Promise<strin
     } catch (openaiError) {
       console.error("OpenAI fallback also failed:", openaiError);
       // If OpenAI also fails, throw an error that signals complete analysis failure
-      throw new Error("Failed to get analysis from Gemini and OpenAI backup.");
+      throw new Error("Failed to get analysis from Cerebras and OpenAI backup.");
     }
   }
   

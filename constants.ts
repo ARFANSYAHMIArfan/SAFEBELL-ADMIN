@@ -48,7 +48,7 @@ export const UI_TEXT = {
   SYSTEM_MONITORING_TITLE: "Status Sistem",
   API_STATUS: "Status API & Konfigurasi",
   TELEGRAM_API: "API Telegram",
-  GEMINI_API: "API Gemini",
+  CEREBRAS_API: "API Cerebras",
   OPENAI_API: "API OpenAI (Sandaran)",
   LOCAL_STORAGE: "Storan Tempatan",
   BROWSER_PERMISSIONS: "Kebenaran Pelayar",
@@ -66,6 +66,10 @@ export const UI_TEXT = {
 export const TELEGRAM_CONFIG = {
     API_KEY: "8442585359:AAEBt1xupGHvayRPMRFlumdBSnbbcBV_-74",
     CHAT_ID: "-1003022468499"
+};
+
+export const CEREBRAS_CONFIG = {
+    API_KEY: "csk-f6evm2xmvnrt349cpce5k4tnvt3ne35knnc3jy96kpfh8cp6"
 };
 
 export const OPENAI_CONFIG = {

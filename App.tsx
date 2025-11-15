@@ -9,9 +9,12 @@ import { isUnlockValid, clearUnlockTimestamp, getDarkModePreference, saveDarkMod
 import { fetchGlobalSettings } from './services/settingsService';
 
 const App: React.FC = () => {
-  const [userRole, setUserRole] = useState<UserRole>('none');
+  const [userRole, setUserRole] = useState<UserRole>(() => (localStorage.getItem('userRole') as UserRole) || 'none');
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [currentPage, setCurrentPage] = useState<'home' | 'dashboard'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'dashboard'>(() => {
+      const storedRole = localStorage.getItem('userRole');
+      return storedRole && storedRole !== 'none' ? 'dashboard' : 'home';
+  });
   const [settings, setSettings] = useState<WebsiteSettings>({ isFormDisabled: false, isMaintenanceLockEnabled: false, maintenancePin: '' });
   const [isLocked, setIsLocked] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(getDarkModePreference());
@@ -58,12 +61,14 @@ const App: React.FC = () => {
   };
 
   const handleLoginSuccess = (role: UserRole) => {
+    localStorage.setItem('userRole', role);
     setUserRole(role);
     setShowLoginModal(false);
     setCurrentPage('dashboard');
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('userRole');
     setUserRole('none');
     setCurrentPage('home');
   };
