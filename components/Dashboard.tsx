@@ -68,7 +68,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
     };
 
     const handleShareReport = async (report: Report) => {
-        const shareText = `*Laporan Kecemasan S.A.F.E*\n\n*ID Laporan:* ${report.id}\n\n*Butiran:*\n${report.content}\n\n*Analisis AI:*\n${report.analysis}`;
+        const shareText = `Laporan Kecemasan S.A.F.E\n\nID Laporan: ${report.id}\n\nButiran:\n${report.content}\n\nAnalisis AI:\n${report.analysis}`;
         
         if (navigator.share) {
             try {
@@ -78,6 +78,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
                 });
             } catch (error) {
                 console.error('Gagal berkongsi:', error);
+                alert(UI_TEXT.SHARE_ERROR);
             }
         } else {
             try {
@@ -123,15 +124,15 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
                                         <h4 className="font-semibold text-sm text-gray-700 dark:text-gray-300">Analisis AI:</h4>
                                         <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap bg-white dark:bg-gray-800 p-2 rounded border dark:border-gray-600">{report.analysis}</p>
                                     </div>
-                                    <div className="flex items-center space-x-4 pt-2">
-                                        <button onClick={() => handleShareReport(report)} className="flex items-center space-x-1 text-xs text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium">
+                                    <div className="flex items-center space-x-2 pt-2">
+                                        <button onClick={() => handleShareReport(report)} className="flex items-center space-x-2 px-3 py-1.5 text-xs font-semibold rounded-lg shadow-sm transition-colors duration-200 bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/50 dark:text-blue-300 dark:hover:bg-blue-900">
                                             <ShareIcon className="w-4 h-4" />
                                             <span>{copiedReportId === report.id ? UI_TEXT.COPIED_TO_CLIPBOARD : UI_TEXT.SHARE_REPORT}</span>
                                         </button>
                                         {userRole === 'admin' && (
-                                             <button onClick={() => handleDeleteReport(report.id)} className="flex items-center space-x-1 text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-medium">
+                                             <button onClick={() => handleDeleteReport(report.id)} className="flex items-center space-x-2 px-3 py-1.5 text-xs font-semibold rounded-lg shadow-sm transition-colors duration-200 bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900">
                                                 <TrashIcon className="w-4 h-4" />
-                                                <span>Padam Laporan</span>
+                                                <span>{UI_TEXT.DELETE_REPORT}</span>
                                             </button>
                                         )}
                                     </div>

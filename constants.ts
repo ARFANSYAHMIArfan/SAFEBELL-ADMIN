@@ -33,6 +33,8 @@ export const UI_TEXT = {
   WELCOME: "Selamat Datang",
   SHARE_REPORT: "Kongsi Laporan",
   COPIED_TO_CLIPBOARD: "Disalin ke papan keratan!",
+  SHARE_ERROR: "Tidak dapat berkongsi laporan. Sila cuba lagi.",
+  DELETE_REPORT: "Padam Laporan",
 };
 
 export const TELEGRAM_CONFIG = {
