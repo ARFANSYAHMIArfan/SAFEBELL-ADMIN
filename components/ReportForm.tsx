@@ -1,13 +1,18 @@
 import React, { useState, useCallback } from 'react';
-import { ReportType } from '../types';
+import { ReportType, WebsiteSettings, Report } from '../types';
 import { UI_TEXT, TEXT_CHAR_LIMIT } from '../constants';
-import { MicIcon, TextIcon, VideoIcon, SendIcon, CheckCircleIcon, XCircleIcon, SparkIcon } from './icons';
+import { MicIcon, TextIcon, VideoIcon, SendIcon, CheckCircleIcon, XCircleIcon, SparkIcon, LockClosedIcon } from './icons';
 import AudioRecorder from './AudioRecorder';
 import VideoRecorder from './VideoRecorder';
 import { analyzeReportWithGemini } from '../services/geminiService';
 import { sendTextReport, sendAudioReport, sendVideoReport } from '../services/telegramService';
+import { addReport } from '../utils/storage';
 
-const ReportForm: React.FC = () => {
+interface ReportFormProps {
+    settings: WebsiteSettings;
+}
+
+const ReportForm: React.FC<ReportFormProps> = ({ settings }) => {
   const [reportType, setReportType] = useState<ReportType>('text');
   const [text, setText] = useState('');
   const [mediaBlob, setMediaBlob] = useState<Blob | null>(null);
@@ -51,8 +56,10 @@ const ReportForm: React.FC = () => {
       }
 
       setLoadingMessage(UI_TEXT.SUBMITTING_REPORT);
+      
+      const reportId = Date.now().toString(36) + Math.random().toString(36).substring(2);
 
-      const caption = `*Laporan Kecemasan Baru Diterima*\n\n*Jenis:* ${reportType.toUpperCase()}\n\n*Butiran Laporan:*\n${text}\n\n---\n\n*Analisis AI (Gemini 2.5 Pro):*\n${analysisResult}`;
+      const caption = `*Laporan Kecemasan Baru Diterima*\n*ID Laporan:* \`${reportId}\`\n\n*Jenis:* ${reportType.toUpperCase()}\n\n*Butiran Laporan:*\n${text}\n\n---\n\n*Analisis AI (Gemini/OpenAI):*\n${analysisResult}`;
 
       switch (reportType) {
         case 'text':
@@ -65,6 +72,15 @@ const ReportForm: React.FC = () => {
           if (mediaBlob) await sendVideoReport(mediaBlob, caption);
           break;
       }
+
+      const newReport: Report = {
+          id: reportId,
+          type: reportType,
+          content: reportType === 'text' ? text : `[Laporan ${reportType} - Media tidak disimpan dalam penyemak imbas]`,
+          analysis: analysisResult,
+          timestamp: new Date().toISOString(),
+      };
+      addReport(newReport);
 
       setSuccess(UI_TEXT.SUCCESS_MESSAGE);
     } catch (submissionError) {
@@ -168,6 +184,16 @@ const ReportForm: React.FC = () => {
       </form>
     );
   };
+  
+    if (settings.isFormDisabled) {
+      return (
+          <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8 border border-gray-200 text-center">
+              <LockClosedIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-700">Borang Laporan Dikunci</h3>
+              <p className="mt-2 text-gray-600">Penghantaran laporan telah dilumpuhkan buat sementara waktu oleh pentadbir.</p>
+          </div>
+      );
+  }
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8 border border-gray-200">

@@ -20,7 +20,15 @@ export const UI_TEXT = {
   ERROR_GENERIC: "Gagal menghantar laporan. Sila cuba lagi.",
   ERROR_MEDIA: "Gagal mengakses kamera atau mikrofon.",
   ERROR_ANALYSIS: "Gagal menganalisis laporan. Laporan akan dihantar tanpa analisis.",
-  RESET_FORM: "Hantar Laporan Lain"
+  RESET_FORM: "Hantar Laporan Lain",
+  LOGIN: "Log Masuk",
+  DASHBOARD: "Papan Pemuka",
+  ADMIN_LOGIN: "Log Masuk Admin/Guru",
+  USER_ID: "ID Pengguna",
+  PASSWORD: "Kata Laluan",
+  LOGIN_ERROR: "ID atau Kata Laluan tidak sah.",
+  LOGOUT: "Log Keluar",
+  WELCOME: "Selamat Datang"
 };
 
 export const TELEGRAM_CONFIG = {
@@ -34,3 +42,16 @@ export const OPENAI_CONFIG = {
 };
 
 export const TEXT_CHAR_LIMIT = 200;
+
+// Note: Storing credentials in frontend code is not secure for production environments.
+// This is for demonstration purposes only.
+export const CREDENTIALS = {
+  ADMIN: {
+    ID: "Safe2141@mozac",
+    PASSWORD: "Admin@mozac101"
+  },
+  TEACHER: {
+    ID: "Safe2141@teacher",
+    PASSWORD: "Teacher@mee2141"
+  }
+};
