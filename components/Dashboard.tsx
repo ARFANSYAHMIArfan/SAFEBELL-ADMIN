@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { UserRole, Report, WebsiteSettings } from '../types';
 import { UI_TEXT } from '../constants';
 import { LogoutIcon, FileTextIcon, MediaIcon, SettingsIcon, ShieldIcon, TrashIcon, ChevronDownIcon } from './icons';
-import { getReports, getSettings, saveSettings, deleteReport } from '../utils/storage';
+import { getReports, deleteReport } from '../utils/storage';
+import { fetchGlobalSettings, updateGlobalSettings } from '../services/settingsService';
 
 interface DashboardProps {
   userRole: UserRole;
@@ -15,17 +16,22 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
     const roleText = userRole === 'admin' ? 'Admin' : 'Guru';
     
     const [reports, setReports] = useState<Report[]>([]);
-    const [settings, setSettings] = useState<WebsiteSettings>(getSettings());
-    const [pinInput, setPinInput] = useState(settings.maintenancePin);
+    const [settings, setSettings] = useState<WebsiteSettings>({ isFormDisabled: false, isMaintenanceLockEnabled: false, maintenancePin: '' });
+    const [pinInput, setPinInput] = useState('');
     const [activeTab, setActiveTab] = useState<'reports' | 'media' | 'settings'>('reports');
     const [expandedReportId, setExpandedReportId] = useState<string | null>(null);
     const [pinError, setPinError] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
         setReports(getReports());
+        fetchGlobalSettings().then(initialSettings => {
+            setSettings(initialSettings);
+            setPinInput(initialSettings.maintenancePin);
+        });
     }, []);
 
-    const handleSettingsSave = () => {
+    const handleSettingsSave = async () => {
         setPinError('');
         if (settings.isMaintenanceLockEnabled) {
             if (!/^\d{8}$/.test(pinInput)) {
@@ -33,11 +39,20 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
                 return;
             }
         }
+        
         const newSettings = { ...settings, maintenancePin: pinInput };
-        setSettings(newSettings);
-        saveSettings(newSettings);
-        onSettingsChange(newSettings); // Notify App component
-        alert('Tetapan telah disimpan!');
+        setIsSaving(true);
+        try {
+            await updateGlobalSettings(newSettings);
+            setSettings(newSettings);
+            onSettingsChange(newSettings); // Notify App component
+            alert('Tetapan telah disimpan!');
+        } catch (error) {
+            console.error("Failed to save settings:", error);
+            alert('Gagal menyimpan tetapan. Sila cuba lagi.');
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const handleDeleteReport = (reportId: string) => {
@@ -136,8 +151,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
                  )}
             </div>
             
-            <button onClick={handleSettingsSave} className="px-6 py-2 bg-gradient-to-r from-[#D78F70] to-[#E8A87C] text-white font-bold rounded-lg shadow-lg hover:shadow-xl">
-                Simpan Tetapan
+            <button 
+                onClick={handleSettingsSave} 
+                className="px-6 py-2 bg-gradient-to-r from-[#D78F70] to-[#E8A87C] text-white font-bold rounded-lg shadow-lg hover:shadow-xl disabled:opacity-50"
+                disabled={isSaving}
+            >
+                {isSaving ? 'Menyimpan...' : 'Simpan Tetapan'}
             </button>
         </div>
     );

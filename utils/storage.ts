@@ -1,9 +1,9 @@
 import { Report, WebsiteSettings } from '../types';
 
 const REPORTS_KEY = 'safe_app_reports';
-const SETTINGS_KEY = 'safe_app_settings';
 const UNLOCK_TIMESTAMP_KEY = 'safe_app_unlock_timestamp';
 const DARK_MODE_KEY = 'safe_app_dark_mode';
+const SETTINGS_KEY = 'safe_app_settings';
 const UNLOCK_DURATION_MS = 8 * 60 * 60 * 1000; // 8 hours
 
 // Default settings
@@ -37,7 +37,7 @@ export const deleteReport = (reportId: string): void => {
     localStorage.setItem(REPORTS_KEY, JSON.stringify(updatedReports));
 };
 
-
+// Fix: Export getSettings function to be used by MaintenanceLock component.
 // Settings Management
 export const getSettings = (): WebsiteSettings => {
     try {
@@ -47,10 +47,6 @@ export const getSettings = (): WebsiteSettings => {
         console.error("Failed to parse settings from localStorage", error);
         return defaultSettings;
     }
-};
-
-export const saveSettings = (settings: WebsiteSettings): void => {
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
 };
 
 // Unlock Status Management

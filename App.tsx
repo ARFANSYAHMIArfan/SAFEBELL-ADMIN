@@ -5,15 +5,17 @@ import LoginModal from './components/LoginModal';
 import Dashboard from './components/Dashboard';
 import MaintenanceLock from './components/MaintenanceLock';
 import { UserRole, WebsiteSettings } from './types';
-import { getSettings, isUnlockValid, clearUnlockTimestamp, getDarkModePreference, saveDarkModePreference } from './utils/storage';
+import { isUnlockValid, clearUnlockTimestamp, getDarkModePreference, saveDarkModePreference } from './utils/storage';
+import { fetchGlobalSettings } from './services/settingsService';
 
 const App: React.FC = () => {
   const [userRole, setUserRole] = useState<UserRole>('none');
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [currentPage, setCurrentPage] = useState<'home' | 'dashboard'>('home');
-  const [settings, setSettings] = useState<WebsiteSettings>(getSettings());
+  const [settings, setSettings] = useState<WebsiteSettings>({ isFormDisabled: false, isMaintenanceLockEnabled: false, maintenancePin: '' });
   const [isLocked, setIsLocked] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(getDarkModePreference());
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -26,12 +28,22 @@ const App: React.FC = () => {
   }, [isDarkMode]);
 
   useEffect(() => {
-    const savedSettings = getSettings();
-    setSettings(savedSettings);
-    const unlocked = isUnlockValid();
-    if (savedSettings.isMaintenanceLockEnabled && !unlocked) {
-      setIsLocked(true);
-    }
+    const loadSettings = async () => {
+      try {
+        const globalSettings = await fetchGlobalSettings();
+        setSettings(globalSettings);
+        const unlocked = isUnlockValid();
+        if (globalSettings.isMaintenanceLockEnabled && !unlocked) {
+          setIsLocked(true);
+        }
+      } catch (error) {
+        console.error("Could not load global settings:", error);
+        // Optionally, show an error message to the user
+      } finally {
+        setIsLoadingSettings(false);
+      }
+    };
+    loadSettings();
   }, []);
   
   const handleSettingsChange = (newSettings: WebsiteSettings) => {
@@ -65,6 +77,14 @@ const App: React.FC = () => {
   const navigateToHome = () => {
     setCurrentPage('home');
   };
+  
+  if (isLoadingSettings) {
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-[#F8F4EF] dark:bg-gray-900 text-[#3D405B] dark:text-gray-300">
+            <p>Memuatkan tetapan...</p>
+        </div>
+    );
+  }
 
   if (isLocked) {
     return <MaintenanceLock onUnlock={() => setIsLocked(false)} />;

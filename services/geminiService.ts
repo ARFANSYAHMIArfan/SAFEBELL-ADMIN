@@ -31,8 +31,8 @@ export const analyzeReportWithGemini = async (reportText: string): Promise<strin
     Pastikan jawapan anda dalam Bahasa Melayu, jelas, objektif, dan profesional.
   `;
   
-  // Primary: Try Gemini if available
-  if (ai) {
+  // --- Primary: Try Gemini ---
+  if (ai) { // `ai` is only initialized if GEMINI_API_KEY is present
     try {
       console.log("Attempting analysis with Gemini...");
       const model = "gemini-2.5-pro";
@@ -49,33 +49,27 @@ export const analyzeReportWithGemini = async (reportText: string): Promise<strin
       return response.text;
     } catch (geminiError) {
       console.error("Error calling Gemini API:", geminiError);
-      // Fallback to OpenAI if Gemini fails and OpenAI key exists
-      if (OPENAI_API_KEY) {
-        console.warn("Gemini API failed. Falling back to OpenAI.");
-        try {
-          return await analyzeReportWithOpenAI(reportText);
-        } catch (openaiError) {
-          console.error("OpenAI fallback also failed:", openaiError);
-          throw new Error("Failed to get analysis from Gemini and OpenAI backup.");
-        }
-      } else {
-        // No fallback available
-        throw new Error("Failed to get analysis from Gemini API and no OpenAI fallback is configured.");
-      }
+      console.warn("Gemini API failed. Falling back to OpenAI.");
+      // Fall through to the OpenAI logic below
     }
-  } 
-  // Secondary: Use OpenAI if Gemini key was not provided in the first place
-  else if (OPENAI_API_KEY) {
-    console.log("Gemini API key not found. Using OpenAI as primary.");
+  } else {
+    console.log("Gemini API key not found. Attempting to use OpenAI as primary.");
+  }
+  
+  // --- Fallback: Try OpenAI ---
+  if (OPENAI_API_KEY) {
     try {
+      // The analyzeReportWithOpenAI function already logs its own attempts
       return await analyzeReportWithOpenAI(reportText);
     } catch (openaiError) {
-      console.error("OpenAI API call failed:", openaiError);
-      throw new Error("Failed to get analysis from OpenAI API.");
+      console.error("OpenAI fallback also failed:", openaiError);
+      // If OpenAI also fails, throw an error that signals complete analysis failure
+      throw new Error("Failed to get analysis from Gemini and OpenAI backup.");
     }
-  } 
-  // No AI service configured
-  else {
-    return "Analisis AI tidak tersedia kerana kunci API tidak dikonfigurasikan.";
   }
+  
+  // --- Final case: No AI service is configured or available ---
+  console.warn("No AI analysis service could be configured or successfully used.");
+  // Return a clear message if no API keys are available at all
+  return "Analisis AI tidak tersedia kerana kunci API tidak dikonfigurasikan.";
 };
