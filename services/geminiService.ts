@@ -26,7 +26,6 @@ export const analyzeReportWithGemini = async (reportText: string): Promise<strin
     1.  **Ringkasan Insiden:** Rumuskan kejadian utama dalam satu atau dua ayat.
     2.  **Tahap Keseriusan:** Nilaikan tahap keseriusan insiden (Rendah, Sederhana, Serius, Kritikal) dan berikan justifikasi ringkas.
     3.  **Potensi Risiko/Bahaya:** Kenal pasti potensi risiko atau bahaya yang terlibat (cth: kecederaan fizikal, kerosakan harta benda, gangguan emosi, keselamatan umum).
-    4.  **Cadangan Tindakan Segera:** Senaraikan 2-3 langkah paling penting yang perlu diambil oleh pihak berkuasa atau responden pertama dengan segera.
     
     Pastikan jawapan anda dalam Bahasa Melayu, jelas, objektif, dan profesional.
   `;

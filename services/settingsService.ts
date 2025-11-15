@@ -1,13 +1,7 @@
 import { WebsiteSettings } from '../types';
 
-// --- IMPORTANT ---
-// This is a placeholder service. To make settings truly global and sync
-// across all browsers and devices, you must replace the localStorage logic
-// below with actual API calls to a backend server and database.
-//
-// Example backend endpoint: https://your-backend.com/api/settings
-
-const SETTINGS_KEY = 'safe_app_settings'; // We still use localStorage as a local cache/fallback
+const SETTINGS_KEY = 'safe_app_settings'; // We use localStorage as a local cache/source of truth.
+const BACKEND_ENDPOINT = 'https://getform.io/f/bolzvgga';
 
 // Default settings
 const defaultSettings: WebsiteSettings = {
@@ -18,22 +12,17 @@ const defaultSettings: WebsiteSettings = {
 
 /**
  * Fetches the global website settings.
- * In a real application, this would make a GET request to a backend API.
- * @returns A promise that resolves to the website settings.
+ * NOTE: getform.io is used for data submission (POST) and does not provide a public
+ * API to retrieve (GET) submitted data. Therefore, we will continue to rely on
+ * localStorage as the primary source for retrieving settings within the app.
+ * The `updateGlobalSettings` function will send the settings to the backend.
+ * @returns A promise that resolves to the website settings from localStorage.
  */
 export const fetchGlobalSettings = async (): Promise<WebsiteSettings> => {
-    console.log("Fetching global settings...");
+    console.log("Fetching settings from local storage...");
     
-    // --- TODO: Replace this with a real API call ---
-    // Example:
-    // const response = await fetch('https://your-backend.com/api/settings');
-    // if (!response.ok) { throw new Error('Failed to fetch settings'); }
-    // const settings = await response.json();
-    // localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); // Optional: cache locally
-    // return settings;
-    
-    // Placeholder implementation using localStorage:
-    await new Promise(resolve => setTimeout(resolve, 300)); // Simulate network delay
+    // Simulate network delay for consistency
+    await new Promise(resolve => setTimeout(resolve, 300)); 
     try {
         const settingsJson = localStorage.getItem(SETTINGS_KEY);
         return settingsJson ? { ...defaultSettings, ...JSON.parse(settingsJson) } : defaultSettings;
@@ -44,24 +33,36 @@ export const fetchGlobalSettings = async (): Promise<WebsiteSettings> => {
 };
 
 /**
- * Updates the global website settings.
- * In a real application, this would make a POST/PUT request to a backend API.
+ * Updates the global website settings by saving to a backend and caching locally.
+ * This function now sends the settings data to the getform.io endpoint.
  * @param settings The new settings object to save.
  * @returns A promise that resolves when the settings are saved.
  */
 export const updateGlobalSettings = async (settings: WebsiteSettings): Promise<void> => {
     console.log("Updating global settings...", settings);
 
-    // --- TODO: Replace this with a real API call ---
-    // Example:
-    // const response = await fetch('https://your-backend.com/api/settings', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(settings)
-    // });
-    // if (!response.ok) { throw new Error('Failed to update settings'); }
-
-    // Placeholder implementation using localStorage:
-    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
+    // First, save settings locally so the app can use them immediately.
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+
+    // Then, send the settings to the backend endpoint.
+    try {
+        const response = await fetch(BACKEND_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(settings)
+        });
+
+        if (!response.ok) {
+          // Even if the backend fails, the settings are saved locally.
+          // We can add more robust error handling here, like a retry mechanism.
+          console.error('Failed to update settings on the backend.', await response.text());
+          throw new Error('Failed to update settings on the backend.');
+        }
+
+        console.log("Settings successfully sent to the backend.");
+    } catch (error) {
+        console.error("Error sending settings to the backend:", error);
+        // Re-throw the error so the calling component can handle it (e.g., show a message)
+        throw error;
+    }
 };

@@ -1,4 +1,5 @@
 
+
 export const UI_TEXT = {
   TITLE: "S.A.F.E - SMART REPORT",
   SUBTITLE: "Laporkan Kejadian Kecemasan DI Sini Secara Anonim Dan Selamat.",
@@ -16,8 +17,8 @@ export const UI_TEXT = {
   PREVIEW_VIDEO: "Pratonton Video",
   SUBMIT_REPORT: "Hantar Laporan",
   SUBMITTING_REPORT: "Menghantar Laporan...",
-  ANALYZING_REPORT: "Menganalisis Laporan (Mod Fikir)...",
-  SUCCESS_MESSAGE: "Laporan anda telah berjaya dihantar. Pihak berwajib akan mengambil tindakan sewajarnya.",
+  ANALYZING_REPORT: "Menganalisis Laporan (Mod Kecerdasan Buatan (AI))...",
+  SUCCESS_MESSAGE: "Terima kasih atas laporan. Laporan ini telah dihantar kepada pengurusan sekolah untuk langkah seterusnya. Jangan risau anda dilindungi",
   ERROR_GENERIC: "Gagal menghantar laporan. Sila cuba lagi.",
   ERROR_MEDIA: "Gagal mengakses kamera atau mikrofon.",
   ERROR_ANALYSIS: "Gagal menganalisis laporan. Laporan akan dihantar tanpa analisis.",
@@ -38,6 +39,28 @@ export const UI_TEXT = {
   DOWNLOAD_REPORT: "Muat Turun Laporan",
   SAVE_AS_PDF: "Simpan sebagai PDF",
   SAVE_AS_DOCX: "Simpan sebagai DOCX",
+  DOWNLOAD_ALL_REPORTS: "Muat Turun Semua Laporan",
+  CONFIRM_ACTION: "Sahkan Tindakan",
+  ENTER_PIN_PROMPT: "Sila masukkan PIN keselamatan untuk memuat turun semua rekod laporan.",
+  CONFIRM_AND_DOWNLOAD: "Sahkan & Muat Turun",
+  INVALID_PIN: "Maaf, PIN tidak sah. Sila cuba lagi.",
+  NEW_REPORT_NOTIFICATION: "Laporan Baru Diterima!",
+  SYSTEM_MONITORING_TITLE: "Status Sistem",
+  API_STATUS: "Status API & Konfigurasi",
+  TELEGRAM_API: "API Telegram",
+  GEMINI_API: "API Gemini",
+  OPENAI_API: "API OpenAI (Sandaran)",
+  LOCAL_STORAGE: "Storan Tempatan",
+  BROWSER_PERMISSIONS: "Kebenaran Pelayar",
+  STATUS_OK: "OK",
+  STATUS_ERROR: "Ralat",
+  STATUS_UNCONFIGURED: "Tidak Dikonfigurasi",
+  REPORTS_STORED: "Laporan Disimpan",
+  PERMISSION_GRANTED: "Dibenarkan",
+  PERMISSION_DENIED: "Ditolak",
+  PERMISSION_PROMPT: "Perlu Kelulusan",
+  RUN_CHECKS: "Jalankan Semakan",
+  CHECKING_STATUS: "Menyemak...",
 };
 
 export const TELEGRAM_CONFIG = {
@@ -64,3 +87,5 @@ export const CREDENTIALS = {
     PASSWORD: "Teacher@mee2141"
   }
 };
+
+export const ADMIN_DOWNLOAD_PIN = "21412141";

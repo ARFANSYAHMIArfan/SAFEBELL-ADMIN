@@ -82,6 +82,13 @@ const ReportForm: React.FC<ReportFormProps> = ({ settings }) => {
       };
       addReport(newReport);
 
+      // Signal to other tabs/windows that a new report has been added
+      localStorage.setItem('new_report_notification', JSON.stringify({
+          id: newReport.id,
+          type: newReport.type,
+          timestamp: Date.now(),
+      }));
+
       setSuccess(UI_TEXT.SUCCESS_MESSAGE);
     } catch (submissionError) {
       console.error("Telegram submission failed:", submissionError);
