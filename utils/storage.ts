@@ -1,6 +1,6 @@
 import { Report, WebsiteSettings } from '../types';
+import { fetchReports, saveReports } from '../services/reportService';
 
-const REPORTS_KEY = 'safe_app_reports';
 const UNLOCK_TIMESTAMP_KEY = 'safe_app_unlock_timestamp';
 const DARK_MODE_KEY = 'safe_app_dark_mode';
 const SETTINGS_KEY = 'safe_app_settings';
@@ -13,32 +13,25 @@ const defaultSettings: WebsiteSettings = {
     maintenancePin: '',
 };
 
-// Reports Management
-export const getReports = (): Report[] => {
-    try {
-        const reportsJson = localStorage.getItem(REPORTS_KEY);
-        return reportsJson ? JSON.parse(reportsJson) : [];
-    } catch (error) {
-        console.error("Failed to parse reports from localStorage", error);
-        return [];
-    }
+// Reports Management (now interfaces with the backend service)
+export const getReports = async (): Promise<Report[]> => {
+    return await fetchReports();
 };
 
-export const addReport = (report: Report): void => {
-    const reports = getReports();
-    // Keep only the latest 50 reports to avoid filling up localStorage
-    const updatedReports = [report, ...reports].slice(0, 50);
-    localStorage.setItem(REPORTS_KEY, JSON.stringify(updatedReports));
+export const addReport = async (report: Report): Promise<void> => {
+    const reports = await fetchReports();
+    // Prepend the new report to maintain reverse chronological order
+    const updatedReports = [report, ...reports];
+    await saveReports(updatedReports);
 };
 
-export const deleteReport = (reportId: string): void => {
-    const reports = getReports();
+export const deleteReport = async (reportId: string): Promise<void> => {
+    const reports = await fetchReports();
     const updatedReports = reports.filter(r => r.id !== reportId);
-    localStorage.setItem(REPORTS_KEY, JSON.stringify(updatedReports));
+    await saveReports(updatedReports);
 };
 
-// Fix: Export getSettings function to be used by MaintenanceLock component.
-// Settings Management
+// Settings Management (local cache for maintenance lock)
 export const getSettings = (): WebsiteSettings => {
     try {
         const settingsJson = localStorage.getItem(SETTINGS_KEY);
@@ -60,7 +53,6 @@ export const isUnlockValid = (): boolean => {
         return false;
     }
     const timestamp = parseInt(timestampStr, 10);
-    // Check if the timestamp is recent (within the last 8 hours)
     return (Date.now() - timestamp) < UNLOCK_DURATION_MS;
 };
 
@@ -74,7 +66,6 @@ export const getDarkModePreference = (): boolean => {
     if (saved !== null) {
         return saved === 'true';
     }
-    // Default to system preference if no setting is saved
     return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
 };
 

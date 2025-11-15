@@ -9,12 +9,9 @@ import { isUnlockValid, clearUnlockTimestamp, getDarkModePreference, saveDarkMod
 import { fetchGlobalSettings } from './services/settingsService';
 
 const App: React.FC = () => {
-  const [userRole, setUserRole] = useState<UserRole>(() => (localStorage.getItem('userRole') as UserRole) || 'none');
+  const [userRole, setUserRole] = useState<UserRole>('none');
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [currentPage, setCurrentPage] = useState<'home' | 'dashboard'>(() => {
-      const storedRole = localStorage.getItem('userRole');
-      return storedRole && storedRole !== 'none' ? 'dashboard' : 'home';
-  });
+  const [currentPage, setCurrentPage] = useState<'home' | 'dashboard'>('home');
   const [settings, setSettings] = useState<WebsiteSettings>({ isFormDisabled: false, isMaintenanceLockEnabled: false, maintenancePin: '' });
   const [isLocked, setIsLocked] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(getDarkModePreference());
@@ -31,6 +28,17 @@ const App: React.FC = () => {
   }, [isDarkMode]);
 
   useEffect(() => {
+    // Check login status on initial load
+    const storedRole = localStorage.getItem('userRole') as UserRole;
+    if (storedRole && storedRole !== 'none') {
+        setUserRole(storedRole);
+        setCurrentPage('dashboard');
+    } else {
+        setCurrentPage('home');
+    }
+  }, []);
+
+  useEffect(() => {
     const loadSettings = async () => {
       try {
         const globalSettings = await fetchGlobalSettings();
@@ -41,7 +49,6 @@ const App: React.FC = () => {
         }
       } catch (error) {
         console.error("Could not load global settings:", error);
-        // Optionally, show an error message to the user
       } finally {
         setIsLoadingSettings(false);
       }
@@ -54,7 +61,7 @@ const App: React.FC = () => {
     const unlocked = isUnlockValid();
     if (!newSettings.isMaintenanceLockEnabled) {
         setIsLocked(false);
-        clearUnlockTimestamp(); // If lock is disabled, clear any existing unlock timer.
+        clearUnlockTimestamp();
     } else if (newSettings.isMaintenanceLockEnabled && !unlocked) {
         setIsLocked(true);
     }

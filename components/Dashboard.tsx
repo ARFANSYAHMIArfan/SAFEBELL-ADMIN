@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { UserRole, Report, WebsiteSettings, ReportType } from '../types';
 import { UI_TEXT, ADMIN_DOWNLOAD_PIN } from '../constants';
 import { 
@@ -6,12 +6,12 @@ import {
     ShareIcon, DownloadIcon, ArchiveBoxIcon, BellIcon, ServerIcon, 
     DatabaseIcon, CheckCircleIcon, XCircleIcon, ExclamationTriangleIcon 
 } from './icons';
-import { getReports, deleteReport } from '../utils/storage';
+import { getReports, deleteReport, getSettings as getLocalSettings } from '../utils/storage';
 import { fetchGlobalSettings, updateGlobalSettings } from '../services/settingsService';
 import { downloadAsPdf, downloadAsDocx } from '../services/downloadService';
 import { 
     checkTelegramApi, checkCerebrasConfig, checkOpenAIConfig, 
-    getLocalStorageUsage, checkPermissions, SystemStatus 
+    getReportCount, checkPermissions, SystemStatus 
 } from '../utils/statusCheck';
 
 declare const saveAs: any;
@@ -23,10 +23,13 @@ interface DashboardProps {
   onSettingsChange: (settings: WebsiteSettings) => void;
 }
 
+const POLLING_INTERVAL = 15000; // 15 seconds
+
 const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHome, onSettingsChange }) => {
     const roleText = userRole === 'admin' ? 'Admin' : 'Guru';
     
     const [reports, setReports] = useState<Report[]>([]);
+    const [isLoadingReports, setIsLoadingReports] = useState(true);
     const [settings, setSettings] = useState<WebsiteSettings>({ isFormDisabled: false, isMaintenanceLockEnabled: false, maintenancePin: '' });
     const [pinInput, setPinInput] = useState('');
     const [activeTab, setActiveTab] = useState<'reports' | 'media' | 'settings'>('reports');
@@ -39,56 +42,60 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
     const [downloadPin, setDownloadPin] = useState('');
     const [downloadPinError, setDownloadPinError] = useState('');
     const [notification, setNotification] = useState<{ id: string; message: string } | null>(null);
-    const [hasUnseenReports, setHasUnseenReports] = useState(false);
     const [systemStatus, setSystemStatus] = useState<SystemStatus | null>(null);
     const [isCheckingStatus, setIsCheckingStatus] = useState(false);
-
+    const reportsRef = useRef(reports);
 
     useEffect(() => {
-        setReports(getReports());
+        reportsRef.current = reports;
+    }, [reports]);
+
+    const fetchAndSetReports = useCallback(async () => {
+        try {
+            const fetchedReports = await getReports();
+            setReports(fetchedReports);
+        } catch (error) {
+            console.error("Failed to fetch reports:", error);
+        } finally {
+            setIsLoadingReports(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchAndSetReports();
         fetchGlobalSettings().then(initialSettings => {
             setSettings(initialSettings);
             setPinInput(initialSettings.maintenancePin);
         });
 
-        const handleStorageChange = (event: StorageEvent) => {
-            if (event.key === 'new_report_notification' && event.newValue) {
-                const newReportInfo: { id: string; type: ReportType } = JSON.parse(event.newValue);
-                setReports(prev => [getReports()[0], ...prev]); // Add new report to list
+        // Polling for new reports
+        const intervalId = setInterval(async () => {
+            const latestReports = await getReports();
+            if (latestReports.length > reportsRef.current.length) {
+                const newReport = latestReports[0];
                 setNotification({
-                    id: newReportInfo.id,
-                    message: `${UI_TEXT.NEW_REPORT_NOTIFICATION} (Jenis: ${newReportInfo.type})`,
+                    id: newReport.id,
+                    message: `${UI_TEXT.NEW_REPORT_NOTIFICATION} (Jenis: ${newReport.type})`,
                 });
-                setHasUnseenReports(true);
             }
-        };
+            setReports(latestReports);
+        }, POLLING_INTERVAL);
 
-        window.addEventListener('storage', handleStorageChange);
-
-        return () => {
-            window.removeEventListener('storage', handleStorageChange);
-        };
-    }, []);
-
+        return () => clearInterval(intervalId);
+    }, [fetchAndSetReports]);
+    
     useEffect(() => {
         if (notification) {
-            const timer = setTimeout(() => setNotification(null), 5000); // Auto-dismiss after 5 seconds
+            const timer = setTimeout(() => setNotification(null), 5000);
             return () => clearTimeout(timer);
         }
     }, [notification]);
-
-    useEffect(() => {
-        // When user switches to a report tab, clear the "unseen" flag
-        if (activeTab === 'reports' || activeTab === 'media') {
-            setHasUnseenReports(false);
-        }
-    }, [activeTab]);
     
     const handleRunChecks = useCallback(async () => {
         setIsCheckingStatus(true);
-        const [tg, storage, perms] = await Promise.all([
+        const [tg, reportCount, perms] = await Promise.all([
             checkTelegramApi(),
-            getLocalStorageUsage(),
+            getReportCount(),
             checkPermissions(),
         ]);
         const cerebras = checkCerebrasConfig();
@@ -98,7 +105,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
             telegram: tg,
             cerebras,
             openai,
-            storage,
+            storage: reportCount,
             permissions: perms,
         });
         setIsCheckingStatus(false);
@@ -124,7 +131,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
         try {
             await updateGlobalSettings(newSettings);
             setSettings(newSettings);
-            onSettingsChange(newSettings); // Notify App component
+            onSettingsChange(newSettings);
             alert('Selesai! Tetapan telah disimpan!');
         } catch (error) {
             console.error("Failed to save settings:", error);
@@ -134,16 +141,16 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
         }
     };
 
-    const handleDeleteReport = (reportId: string) => {
+    const handleDeleteReport = async (reportId: string) => {
         if (window.confirm('Adakah anda pasti mahu memadam laporan ini?')) {
-            deleteReport(reportId);
-            setReports(getReports()); // Refresh reports list
+            await deleteReport(reportId);
+            fetchAndSetReports(); // Refresh reports list from backend
         }
     };
 
     const toggleReport = (reportId: string) => {
         setExpandedReportId(expandedReportId === reportId ? null : reportId);
-        setShowDownloadOptions(null); // Close download options when collapsing
+        setShowDownloadOptions(null);
     };
 
     const handleShareReport = async (report: Report) => {
@@ -177,15 +184,15 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
         setDownloadPinError('');
     };
 
-    const handleConfirmDownload = (e: React.FormEvent) => {
+    const handleConfirmDownload = async (e: React.FormEvent) => {
         e.preventDefault();
         if (downloadPin === ADMIN_DOWNLOAD_PIN) {
             setDownloadPinError('');
             
-            const allReports = getReports();
+            const allReports = await getReports();
             const dataStr = JSON.stringify(allReports, null, 2);
             const blob = new Blob([dataStr], { type: "application/json" });
-            const timestamp = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+            const timestamp = new Date().toISOString().split('T')[0];
             saveAs(blob, `semua_laporan_safe_${timestamp}.json`);
 
             handleClosePinModal();
@@ -194,11 +201,13 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
         }
     };
 
-
     const textReports = reports.filter(r => r.type === 'text');
     const mediaReports = reports.filter(r => r.type === 'audio' || r.type === 'video');
 
     const renderReportList = (reportList: Report[]) => {
+        if (isLoadingReports) {
+            return <p className="text-gray-500 dark:text-gray-400 italic">Memuatkan laporan...</p>;
+        }
         if (reportList.length === 0) {
             return <p className="text-gray-500 dark:text-gray-400 italic">Tiada laporan ditemui.</p>;
         }
@@ -424,11 +433,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
             <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
                 <button onClick={() => setActiveTab('reports')} className={`relative px-4 py-2 text-sm font-semibold transition-colors ${activeTab === 'reports' ? 'border-b-2 border-[#6B8A9E] text-[#6B8A9E] dark:text-[#a6c8de]' : 'text-gray-500 dark:text-gray-400'}`}>
                     Urus Laporan Teks
-                    {hasUnseenReports && reports.some(r => r.type === 'text') && <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full"></span>}
                 </button>
                 <button onClick={() => setActiveTab('media')} className={`relative px-4 py-2 text-sm font-semibold transition-colors ${activeTab === 'media' ? 'border-b-2 border-[#6B8A9E] text-[#6B8A9E] dark:text-[#a6c8de]' : 'text-gray-500 dark:text-gray-400'}`}>
                     Arkib Media
-                    {hasUnseenReports && reports.some(r => r.type !== 'text') && <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full"></span>}
                 </button>
                 {userRole === 'admin' && <button onClick={() => setActiveTab('settings')} className={`px-4 py-2 text-sm font-semibold transition-colors ${activeTab === 'settings' ? 'border-b-2 border-[#6B8A9E] text-[#6B8A9E] dark:text-[#a6c8de]' : 'text-gray-500 dark:text-gray-400'}`} title="Manage website features and maintenance lock">Tetapan</button>}
             </div>

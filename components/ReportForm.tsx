@@ -61,6 +61,18 @@ const ReportForm: React.FC<ReportFormProps> = ({ settings }) => {
 
       const caption = `*Laporan Kecemasan Baru Diterima*\n*ID Laporan:* \`${reportId}\`\n\n*Jenis:* ${reportType.toUpperCase()}\n\n*Butiran Laporan:*\n${text}\n\n---\n\n*Analisis AI (Cerebras/OpenAI):*\n${analysisResult}`;
 
+      const newReport: Report = {
+          id: reportId,
+          type: reportType,
+          content: reportType === 'text' ? text : `[Laporan ${reportType} - Media tidak disimpan dalam penyemak imbas]`,
+          analysis: analysisResult,
+          timestamp: new Date().toISOString(),
+      };
+
+      // First, save the report to the backend.
+      await addReport(newReport);
+      
+      // Then, send the notifications.
       switch (reportType) {
         case 'text':
           await sendTextReport(caption);
@@ -73,25 +85,9 @@ const ReportForm: React.FC<ReportFormProps> = ({ settings }) => {
           break;
       }
 
-      const newReport: Report = {
-          id: reportId,
-          type: reportType,
-          content: reportType === 'text' ? text : `[Laporan ${reportType} - Media tidak disimpan dalam penyemak imbas]`,
-          analysis: analysisResult,
-          timestamp: new Date().toISOString(),
-      };
-      addReport(newReport);
-
-      // Signal to other tabs/windows that a new report has been added
-      localStorage.setItem('new_report_notification', JSON.stringify({
-          id: newReport.id,
-          type: newReport.type,
-          timestamp: Date.now(),
-      }));
-
       setSuccess(UI_TEXT.SUCCESS_MESSAGE);
     } catch (submissionError) {
-      console.error("Telegram submission failed:", submissionError);
+      console.error("Report submission failed:", submissionError);
       setError(UI_TEXT.ERROR_GENERIC);
     } finally {
       setIsLoading(false);

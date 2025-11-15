@@ -58,11 +58,15 @@ export const checkOpenAIConfig = (): StatusItem => {
 };
 
 /**
- * Gets the number of reports stored in localStorage.
+ * Gets the number of reports stored in the backend.
  */
-export const getLocalStorageUsage = (): StatusItem => {
-  const reports = getReports();
-  return { status: 'info', message: `${reports.length} Laporan` };
+export const getReportCount = async (): Promise<StatusItem> => {
+  try {
+    const reports = await getReports();
+    return { status: 'info', message: `${reports.length} Laporan` };
+  } catch (error) {
+    return { status: 'error', message: 'Gagal mengambil kira' };
+  }
 };
 
 /**
