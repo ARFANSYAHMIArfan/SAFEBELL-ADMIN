@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { UserRole, Report, WebsiteSettings } from '../types';
 import { UI_TEXT } from '../constants';
-import { LogoutIcon, FileTextIcon, MediaIcon, SettingsIcon, ShieldIcon, TrashIcon, ChevronDownIcon, ShareIcon } from './icons';
+import { LogoutIcon, FileTextIcon, MediaIcon, SettingsIcon, ShieldIcon, TrashIcon, ChevronDownIcon, ShareIcon, DownloadIcon } from './icons';
 import { getReports, deleteReport } from '../utils/storage';
 import { fetchGlobalSettings, updateGlobalSettings } from '../services/settingsService';
+import { downloadAsPdf, downloadAsDocx } from '../services/downloadService';
 
 interface DashboardProps {
   userRole: UserRole;
@@ -23,6 +24,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
     const [pinError, setPinError] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [copiedReportId, setCopiedReportId] = useState<string | null>(null);
+    const [showDownloadOptions, setShowDownloadOptions] = useState<string | null>(null);
 
     useEffect(() => {
         setReports(getReports());
@@ -65,6 +67,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
 
     const toggleReport = (reportId: string) => {
         setExpandedReportId(expandedReportId === reportId ? null : reportId);
+        setShowDownloadOptions(null); // Close download options when collapsing
     };
 
     const handleShareReport = async (report: Report) => {
@@ -129,6 +132,24 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
                                             <ShareIcon className="w-4 h-4" />
                                             <span>{copiedReportId === report.id ? UI_TEXT.COPIED_TO_CLIPBOARD : UI_TEXT.SHARE_REPORT}</span>
                                         </button>
+
+                                        <div className="relative">
+                                            <button onClick={() => setShowDownloadOptions(showDownloadOptions === report.id ? null : report.id)} className="flex items-center space-x-2 px-3 py-1.5 text-xs font-semibold rounded-lg shadow-sm transition-colors duration-200 bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300 dark:hover:bg-green-900">
+                                                <DownloadIcon className="w-4 h-4" />
+                                                <span>{UI_TEXT.DOWNLOAD_REPORT}</span>
+                                            </button>
+                                            {showDownloadOptions === report.id && (
+                                                <div className="absolute bottom-full left-0 mb-2 w-40 bg-white dark:bg-gray-800 border dark:border-gray-600 rounded-lg shadow-lg z-10">
+                                                    <button onClick={() => { downloadAsPdf(report); setShowDownloadOptions(null); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                                        {UI_TEXT.SAVE_AS_PDF}
+                                                    </button>
+                                                    <button onClick={() => { downloadAsDocx(report); setShowDownloadOptions(null); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                                        {UI_TEXT.SAVE_AS_DOCX}
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+
                                         {userRole === 'admin' && (
                                              <button onClick={() => handleDeleteReport(report.id)} className="flex items-center space-x-2 px-3 py-1.5 text-xs font-semibold rounded-lg shadow-sm transition-colors duration-200 bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900">
                                                 <TrashIcon className="w-4 h-4" />

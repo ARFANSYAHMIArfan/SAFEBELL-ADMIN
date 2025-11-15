@@ -35,6 +35,9 @@ export const UI_TEXT = {
   COPIED_TO_CLIPBOARD: "Disalin ke papan keratan!",
   SHARE_ERROR: "Tidak dapat berkongsi laporan. Sila cuba lagi.",
   DELETE_REPORT: "Padam Laporan",
+  DOWNLOAD_REPORT: "Muat Turun Laporan",
+  SAVE_AS_PDF: "Simpan sebagai PDF",
+  SAVE_AS_DOCX: "Simpan sebagai DOCX",
 };
 
 export const TELEGRAM_CONFIG = {
