@@ -2,6 +2,8 @@ import { Report, WebsiteSettings } from '../types';
 
 const REPORTS_KEY = 'safe_app_reports';
 const SETTINGS_KEY = 'safe_app_settings';
+const UNLOCK_TIMESTAMP_KEY = 'safe_app_unlock_timestamp';
+const UNLOCK_DURATION_MS = 8 * 60 * 60 * 1000; // 8 hours
 
 // Default settings
 const defaultSettings: WebsiteSettings = {
@@ -48,4 +50,23 @@ export const getSettings = (): WebsiteSettings => {
 
 export const saveSettings = (settings: WebsiteSettings): void => {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+};
+
+// Unlock Status Management
+export const setUnlockTimestamp = (): void => {
+    localStorage.setItem(UNLOCK_TIMESTAMP_KEY, Date.now().toString());
+};
+
+export const isUnlockValid = (): boolean => {
+    const timestampStr = localStorage.getItem(UNLOCK_TIMESTAMP_KEY);
+    if (!timestampStr) {
+        return false;
+    }
+    const timestamp = parseInt(timestampStr, 10);
+    // Check if the timestamp is recent (within the last 8 hours)
+    return (Date.now() - timestamp) < UNLOCK_DURATION_MS;
+};
+
+export const clearUnlockTimestamp = (): void => {
+    localStorage.removeItem(UNLOCK_TIMESTAMP_KEY);
 };

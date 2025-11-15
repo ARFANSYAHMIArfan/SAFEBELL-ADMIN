@@ -1,5 +1,5 @@
 {
-  "name": "S.A.F.E - SMART EMERGENCY REPORT",
+  "name": "S.A.F.E - SMART REPORT",
   "description": "Laporkan Kejadian Kecemasan DI Sini Secara Anonim Dan Selamat.",
   "requestFramePermissions": [
     "camera",

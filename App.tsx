@@ -5,7 +5,7 @@ import LoginModal from './components/LoginModal';
 import Dashboard from './components/Dashboard';
 import MaintenanceLock from './components/MaintenanceLock';
 import { UserRole, WebsiteSettings } from './types';
-import { getSettings } from './utils/storage';
+import { getSettings, isUnlockValid, clearUnlockTimestamp } from './utils/storage';
 
 const App: React.FC = () => {
   const [userRole, setUserRole] = useState<UserRole>('none');
@@ -17,7 +17,7 @@ const App: React.FC = () => {
   useEffect(() => {
     const savedSettings = getSettings();
     setSettings(savedSettings);
-    const unlocked = sessionStorage.getItem('siteUnlocked') === 'true';
+    const unlocked = isUnlockValid();
     if (savedSettings.isMaintenanceLockEnabled && !unlocked) {
       setIsLocked(true);
     }
@@ -25,10 +25,10 @@ const App: React.FC = () => {
   
   const handleSettingsChange = (newSettings: WebsiteSettings) => {
     setSettings(newSettings);
-    // Re-evaluate lock status if maintenance mode was just turned off
-    const unlocked = sessionStorage.getItem('siteUnlocked') === 'true';
+    const unlocked = isUnlockValid();
     if (!newSettings.isMaintenanceLockEnabled) {
         setIsLocked(false);
+        clearUnlockTimestamp(); // If lock is disabled, clear any existing unlock timer.
     } else if (newSettings.isMaintenanceLockEnabled && !unlocked) {
         setIsLocked(true);
     }

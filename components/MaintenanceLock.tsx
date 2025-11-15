@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ShieldIcon } from './icons';
-import { getSettings } from '../utils/storage';
+import { getSettings, setUnlockTimestamp } from '../utils/storage';
 
 interface MaintenanceLockProps {
   onUnlock: () => void;
@@ -15,7 +15,7 @@ const MaintenanceLock: React.FC<MaintenanceLockProps> = ({ onUnlock }) => {
         e.preventDefault();
         if (pin === settings.maintenancePin) {
             setError('');
-            sessionStorage.setItem('siteUnlocked', 'true');
+            setUnlockTimestamp();
             onUnlock();
         } else {
             setError('PIN tidak sah. Sila cuba lagi.');

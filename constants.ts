@@ -1,5 +1,6 @@
+
 export const UI_TEXT = {
-  TITLE: "S.A.F.E - SMART EMERGENCY REPORT",
+  TITLE: "S.A.F.E - SMART REPORT",
   SUBTITLE: "Laporkan Kejadian Kecemasan DI Sini Secara Anonim Dan Selamat.",
   REPORT_TYPE_LABEL: "Pilih Jenis Laporan",
   TEXT: "Teks",
