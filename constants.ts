@@ -30,7 +30,9 @@ export const UI_TEXT = {
   PASSWORD: "Kata Laluan",
   LOGIN_ERROR: "ID atau Kata Laluan tidak sah.",
   LOGOUT: "Log Keluar",
-  WELCOME: "Selamat Datang"
+  WELCOME: "Selamat Datang",
+  SHARE_REPORT: "Kongsi Laporan",
+  COPIED_TO_CLIPBOARD: "Disalin ke papan keratan!",
 };
 
 export const TELEGRAM_CONFIG = {

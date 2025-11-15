@@ -25,8 +25,8 @@ const MaintenanceLock: React.FC<MaintenanceLockProps> = ({ onUnlock }) => {
     return (
         <div className="fixed inset-0 bg-[#F8F4EF] dark:bg-gray-900 flex flex-col items-center justify-center z-50 p-4">
              <div className="text-center max-w-md w-full bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
-                <div className="mx-auto mb-4 p-3 bg-gradient-to-br from-[#6B8A9E] to-[#D78F70] rounded-lg w-16 h-16 flex items-center justify-center">
-                    <ShieldIcon className="w-10 h-10 text-white" />
+                <div className="mx-auto mb-6 flex items-center justify-center">
+                    <ShieldIcon className="w-20 h-20 object-contain" />
                 </div>
                 <h1 className="text-2xl font-bold text-[#6B8A9E] dark:text-gray-200 mb-2">Laman Sedang Diselenggara</h1>
                 <p className="text-gray-600 dark:text-gray-400 mb-6">Kami sedang melakukan beberapa penambahbaikan. Sila masukkan PIN untuk meneruskan jika anda seorang pentadbir.</p>

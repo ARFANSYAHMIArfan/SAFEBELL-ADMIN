@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserRole, Report, WebsiteSettings } from '../types';
 import { UI_TEXT } from '../constants';
-import { LogoutIcon, FileTextIcon, MediaIcon, SettingsIcon, ShieldIcon, TrashIcon, ChevronDownIcon } from './icons';
+import { LogoutIcon, FileTextIcon, MediaIcon, SettingsIcon, ShieldIcon, TrashIcon, ChevronDownIcon, ShareIcon } from './icons';
 import { getReports, deleteReport } from '../utils/storage';
 import { fetchGlobalSettings, updateGlobalSettings } from '../services/settingsService';
 
@@ -22,6 +22,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
     const [expandedReportId, setExpandedReportId] = useState<string | null>(null);
     const [pinError, setPinError] = useState('');
     const [isSaving, setIsSaving] = useState(false);
+    const [copiedReportId, setCopiedReportId] = useState<string | null>(null);
 
     useEffect(() => {
         setReports(getReports());
@@ -66,6 +67,30 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
         setExpandedReportId(expandedReportId === reportId ? null : reportId);
     };
 
+    const handleShareReport = async (report: Report) => {
+        const shareText = `*Laporan Kecemasan S.A.F.E*\n\n*ID Laporan:* ${report.id}\n\n*Butiran:*\n${report.content}\n\n*Analisis AI:*\n${report.analysis}`;
+        
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: `Laporan Kecemasan S.A.F.E - ID: ${report.id}`,
+                    text: shareText,
+                });
+            } catch (error) {
+                console.error('Gagal berkongsi:', error);
+            }
+        } else {
+            try {
+                await navigator.clipboard.writeText(shareText);
+                setCopiedReportId(report.id);
+                setTimeout(() => setCopiedReportId(null), 2000); // Sembunyikan mesej selepas 2 saat
+            } catch (error) {
+                console.error('Gagal menyalin:', error);
+                alert('Gagal menyalin ke papan keratan.');
+            }
+        }
+    };
+
     const textReports = reports.filter(r => r.type === 'text');
     const mediaReports = reports.filter(r => r.type === 'audio' || r.type === 'video');
 
@@ -78,10 +103,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
                 {reportList.map(report => (
                     <div key={report.id} className="border border-gray-200 dark:border-gray-700 rounded-lg">
                         <button onClick={() => toggleReport(report.id)} className="w-full flex justify-between items-center p-3 text-left">
-                           <div className="flex items-center space-x-3">
-                                <span className="font-mono text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded">{report.id}</span>
-                                <span className="font-semibold text-gray-800 dark:text-gray-200 capitalize">{report.type} Report</span>
-                                <span className="text-sm text-gray-500 dark:text-gray-400">{new Date(report.timestamp).toLocaleString()}</span>
+                           <div className="flex items-center space-x-4">
+                               <span className="font-mono text-sm bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 px-3 py-1.5 rounded-md font-bold tracking-wider">{report.id}</span>
+                               <div>
+                                   <span className="block font-semibold text-gray-800 dark:text-gray-200 capitalize">{report.type} Report</span>
+                                   <span className="block text-xs text-gray-500 dark:text-gray-400">{new Date(report.timestamp).toLocaleString()}</span>
+                               </div>
                            </div>
                            <ChevronDownIcon className={`w-5 h-5 text-gray-500 dark:text-gray-400 transform transition-transform ${expandedReportId === report.id ? 'rotate-180' : ''}`} />
                         </button>
@@ -96,12 +123,18 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
                                         <h4 className="font-semibold text-sm text-gray-700 dark:text-gray-300">Analisis AI:</h4>
                                         <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap bg-white dark:bg-gray-800 p-2 rounded border dark:border-gray-600">{report.analysis}</p>
                                     </div>
-                                    {userRole === 'admin' && (
-                                         <button onClick={() => handleDeleteReport(report.id)} className="flex items-center space-x-1 text-xs text-red-500 hover:text-red-700">
-                                            <TrashIcon className="w-4 h-4" />
-                                            <span>Padam Laporan</span>
+                                    <div className="flex items-center space-x-4 pt-2">
+                                        <button onClick={() => handleShareReport(report)} className="flex items-center space-x-1 text-xs text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium">
+                                            <ShareIcon className="w-4 h-4" />
+                                            <span>{copiedReportId === report.id ? UI_TEXT.COPIED_TO_CLIPBOARD : UI_TEXT.SHARE_REPORT}</span>
                                         </button>
-                                    )}
+                                        {userRole === 'admin' && (
+                                             <button onClick={() => handleDeleteReport(report.id)} className="flex items-center space-x-1 text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-medium">
+                                                <TrashIcon className="w-4 h-4" />
+                                                <span>Padam Laporan</span>
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         )}

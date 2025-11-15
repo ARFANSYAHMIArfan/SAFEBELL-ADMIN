@@ -17,9 +17,7 @@ const Header: React.FC<HeaderProps> = ({ userRole, onLoginClick, onDashboardClic
     <header className="bg-white dark:bg-gray-800 shadow-md border-b border-gray-200 dark:border-gray-700 transition-colors duration-300">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
         <button onClick={onHomeClick} className="flex items-center space-x-4 text-left">
-          <div className="p-2 bg-gradient-to-br from-[#6B8A9E] to-[#D78F70] rounded-lg">
-            <ShieldIcon className="w-8 h-8 text-white" />
-          </div>
+          <ShieldIcon className="w-10 h-10 object-contain" />
           <div>
               <h1 className="text-2xl font-bold text-[#6B8A9E] dark:text-gray-200">{UI_TEXT.TITLE}</h1>
               <p className="text-sm text-gray-500 dark:text-gray-400">{UI_TEXT.SUBTITLE}</p>
