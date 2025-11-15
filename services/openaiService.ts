@@ -1,5 +1,6 @@
+import { OPENAI_CONFIG } from '../constants';
 
-const API_KEY = process.env.OPENAI_API_KEY;
+const API_KEY = OPENAI_CONFIG.API_KEY;
 
 export const analyzeReportWithOpenAI = async (reportText: string): Promise<string> => {
     if (!API_KEY) {

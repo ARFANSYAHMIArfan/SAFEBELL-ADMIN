@@ -1,10 +1,10 @@
-
 import { GoogleGenAI } from "@google/genai";
 import { analyzeReportWithOpenAI } from './openaiService';
+import { OPENAI_CONFIG } from '../constants';
 
-// Ensure the API keys are available in the environment variables
+// Ensure the API keys are available
 const GEMINI_API_KEY = process.env.API_KEY;
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const OPENAI_API_KEY = OPENAI_CONFIG.API_KEY;
 
 if (!GEMINI_API_KEY) {
   console.warn("Gemini API key not found. Will attempt to use OpenAI as a backup.");

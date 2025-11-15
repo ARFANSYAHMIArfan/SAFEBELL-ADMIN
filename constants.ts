@@ -28,4 +28,9 @@ export const TELEGRAM_CONFIG = {
     CHAT_ID: "-1003022468499"
 };
 
+export const OPENAI_CONFIG = {
+    API_KEY: "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",
+    SERVICE_ACCOUNT_API: "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"
+};
+
 export const TEXT_CHAR_LIMIT = 200;
