@@ -3,7 +3,7 @@ import { CEREBRAS_CONFIG, OPENAI_CONFIG } from '../constants';
 
 // Ensure the API keys are available
 const CEREBRAS_API_KEY = CEREBRAS_CONFIG.API_KEY;
-const OPENAI_API_KEY = OPENAI_CONFIG.API_KEY;
+const OPENAI_API_KEY = OPENAI_CONFIG.API_KEY || OPENAI_CONFIG.SERVICE_ACCOUNT_API;
 
 if (!CEREBRAS_API_KEY) {
   console.warn("Cerebras API key not found. Will attempt to use OpenAI as a backup.");
@@ -38,7 +38,7 @@ export const analyzeReportWithAI = async (reportText: string): Promise<string> =
                 'Authorization': `Bearer ${CEREBRAS_API_KEY}`,
             },
             body: JSON.stringify({
-                model: "btlm-3b-8k-chat", // A reasonable guess for a Cerebras model
+                model: "mixtral-8x7b-instruct-v0.1", // Using a more standard, powerful model
                 messages: [{ role: "user", content: prompt }],
                 temperature: 0.5,
             }),

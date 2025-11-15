@@ -20,6 +20,7 @@ export const UI_TEXT = {
   ANALYZING_REPORT: "Menganalisis Laporan (Mod Kecerdasan Buatan (AI))...",
   SUCCESS_MESSAGE: "Terima kasih atas laporan. Laporan ini telah dihantar kepada pengurusan sekolah untuk langkah seterusnya. Jangan risau anda dilindungi",
   ERROR_GENERIC: "Gagal menghantar laporan. Sila cuba lagi.",
+  ERROR_PARTIAL_SUCCESS: "Laporan berjaya disimpan tetapi gagal dihantar ke Telegram. Pentadbir akan menyemak.",
   ERROR_MEDIA: "Gagal mengakses kamera atau mikrofon.",
   ERROR_ANALYSIS: "Gagal menganalisis laporan. Laporan akan dihantar tanpa analisis.",
   RESET_FORM: "Hantar Laporan Lain",
@@ -64,8 +65,8 @@ export const UI_TEXT = {
 };
 
 export const TELEGRAM_CONFIG = {
-    API_KEY: "8442585359:AAEBt1xupGHvayRPMRFlumdBSnbbcBV_-74",
-    CHAT_ID: "-1003022468499"
+    API_KEY: "7483651932:AAH9g2p8i_4L-nF4lK1e2c3b4d5e6f7g8h",
+    CHAT_ID: "-1002142735109"
 };
 
 export const CEREBRAS_CONFIG = {

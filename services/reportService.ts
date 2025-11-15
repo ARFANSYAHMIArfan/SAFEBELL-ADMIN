@@ -1,7 +1,7 @@
 import { Report } from '../types';
 
 // Using a separate key in the same kvdb.io bucket for reports.
-const REPORTS_ENDPOINT = 'https://kvdb.io/fVbT7uWp4Zq9R2kYjJ8s3N/app-reports';
+const REPORTS_ENDPOINT = 'https://kvdb.io/ASfCj8jT2t9z4KqX1LwYxS/app-reports';
 
 /**
  * Fetches all reports from the remote backend.

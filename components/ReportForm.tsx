@@ -58,9 +58,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ settings }) => {
       setLoadingMessage(UI_TEXT.SUBMITTING_REPORT);
       
       const reportId = Date.now().toString(36) + Math.random().toString(36).substring(2);
-
       const caption = `*Laporan Kecemasan Baru Diterima*\n*ID Laporan:* \`${reportId}\`\n\n*Jenis:* ${reportType.toUpperCase()}\n\n*Butiran Laporan:*\n${text}\n\n---\n\n*Analisis AI (Cerebras/OpenAI):*\n${analysisResult}`;
-
       const newReport: Report = {
           id: reportId,
           type: reportType,
@@ -69,25 +67,45 @@ const ReportForm: React.FC<ReportFormProps> = ({ settings }) => {
           timestamp: new Date().toISOString(),
       };
 
-      // First, save the report to the backend.
-      await addReport(newReport);
+      let saveError: Error | null = null;
+      let telegramError: Error | null = null;
+
+      try {
+        await addReport(newReport);
+      } catch (e) {
+          saveError = e as Error;
+          console.error("Report submission failed (Database):", saveError);
+      }
       
-      // Then, send the notifications.
-      switch (reportType) {
-        case 'text':
-          await sendTextReport(caption);
-          break;
-        case 'audio':
-          if (mediaBlob) await sendAudioReport(mediaBlob, caption);
-          break;
-        case 'video':
-          if (mediaBlob) await sendVideoReport(mediaBlob, caption);
-          break;
+      if (!saveError) {
+        try {
+            switch (reportType) {
+              case 'text':
+                await sendTextReport(caption);
+                break;
+              case 'audio':
+                if (mediaBlob) await sendAudioReport(mediaBlob, caption);
+                break;
+              case 'video':
+                if (mediaBlob) await sendVideoReport(mediaBlob, caption);
+                break;
+            }
+        } catch (e) {
+            telegramError = e as Error;
+            console.error("Report submission failed (Telegram):", telegramError);
+        }
       }
 
-      setSuccess(UI_TEXT.SUCCESS_MESSAGE);
+      if (saveError) {
+          setError(UI_TEXT.ERROR_GENERIC);
+      } else if (telegramError) {
+          setError(UI_TEXT.ERROR_PARTIAL_SUCCESS);
+      } else {
+          setSuccess(UI_TEXT.SUCCESS_MESSAGE);
+      }
+
     } catch (submissionError) {
-      console.error("Report submission failed:", submissionError);
+      console.error("Report submission failed with an unexpected error:", submissionError);
       setError(UI_TEXT.ERROR_GENERIC);
     } finally {
       setIsLoading(false);

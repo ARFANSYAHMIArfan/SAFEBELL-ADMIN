@@ -1,10 +1,12 @@
 import { OPENAI_CONFIG } from '../constants';
 
-const API_KEY = OPENAI_CONFIG.API_KEY;
+// The primary project key is out of quota. Using the service account key as a replacement.
+const API_KEY = OPENAI_CONFIG.SERVICE_ACCOUNT_API;
+
 export const analyzeReportWithOpenAI = async (reportText: string): Promise<string> => {
     if (!API_KEY) {
-        console.warn("OpenAI API key not found.");
-        throw new Error("OpenAI API key not configured.");
+        console.warn("OpenAI Service Account API key not found.");
+        throw new Error("OpenAI Service Account API key not configured.");
     }
 
     const prompt = `
