@@ -3,6 +3,7 @@ import { Report, WebsiteSettings } from '../types';
 const REPORTS_KEY = 'safe_app_reports';
 const SETTINGS_KEY = 'safe_app_settings';
 const UNLOCK_TIMESTAMP_KEY = 'safe_app_unlock_timestamp';
+const DARK_MODE_KEY = 'safe_app_dark_mode';
 const UNLOCK_DURATION_MS = 8 * 60 * 60 * 1000; // 8 hours
 
 // Default settings
@@ -69,4 +70,18 @@ export const isUnlockValid = (): boolean => {
 
 export const clearUnlockTimestamp = (): void => {
     localStorage.removeItem(UNLOCK_TIMESTAMP_KEY);
+};
+
+// Dark Mode Management
+export const getDarkModePreference = (): boolean => {
+    const saved = localStorage.getItem(DARK_MODE_KEY);
+    if (saved !== null) {
+        return saved === 'true';
+    }
+    // Default to system preference if no setting is saved
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+};
+
+export const saveDarkModePreference = (isDarkMode: boolean): void => {
+    localStorage.setItem(DARK_MODE_KEY, isDarkMode.toString());
 };

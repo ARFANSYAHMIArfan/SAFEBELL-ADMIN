@@ -69,7 +69,7 @@ const VideoRecorder: React.FC<VideoRecorderProps> = ({ onRecordingComplete }) =>
   }, []);
 
   return (
-    <div className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg h-full space-y-4">
+    <div className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg h-full space-y-4">
       <div className="w-full bg-black rounded-md overflow-hidden aspect-video">
         {videoURL && !isRecording ? (
             <video src={videoURL} controls className="w-full h-full" />

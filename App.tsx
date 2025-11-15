@@ -5,7 +5,7 @@ import LoginModal from './components/LoginModal';
 import Dashboard from './components/Dashboard';
 import MaintenanceLock from './components/MaintenanceLock';
 import { UserRole, WebsiteSettings } from './types';
-import { getSettings, isUnlockValid, clearUnlockTimestamp } from './utils/storage';
+import { getSettings, isUnlockValid, clearUnlockTimestamp, getDarkModePreference, saveDarkModePreference } from './utils/storage';
 
 const App: React.FC = () => {
   const [userRole, setUserRole] = useState<UserRole>('none');
@@ -13,6 +13,17 @@ const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<'home' | 'dashboard'>('home');
   const [settings, setSettings] = useState<WebsiteSettings>(getSettings());
   const [isLocked, setIsLocked] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(getDarkModePreference());
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    if (isDarkMode) {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    saveDarkModePreference(isDarkMode);
+  }, [isDarkMode]);
 
   useEffect(() => {
     const savedSettings = getSettings();
@@ -60,12 +71,14 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F4EF] text-[#3D405B] font-sans">
+    <div className="min-h-screen bg-[#F8F4EF] dark:bg-gray-900 text-[#3D405B] dark:text-gray-300 font-sans transition-colors duration-300">
       <Header 
         userRole={userRole}
         onLoginClick={() => setShowLoginModal(true)}
         onDashboardClick={navigateToDashboard}
         onHomeClick={navigateToHome}
+        isDarkMode={isDarkMode}
+        toggleDarkMode={() => setIsDarkMode(prev => !prev)}
       />
       
       {showLoginModal && (
@@ -89,7 +102,7 @@ const App: React.FC = () => {
         </div>
       </main>
 
-      <footer className="text-center p-4 text-xs text-gray-500">
+      <footer className="text-center p-4 text-xs text-gray-500 dark:text-gray-400">
         <p>© 2025 KitaBUDDY:#JOMCEGAHBULI. Hak Cipta Terpelihara. Dikuasakan oleh Teknologi Anonim AI.</p>
       </footer>
     </div>

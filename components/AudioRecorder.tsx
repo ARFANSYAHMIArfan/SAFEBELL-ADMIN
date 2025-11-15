@@ -61,10 +61,10 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onRecordingComplete }) =>
   }, []);
 
   return (
-    <div className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg h-full">
+    <div className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg h-full">
       {audioURL && (
         <div className="w-full mb-4">
-          <p className="text-sm font-medium text-gray-600 mb-2">{UI_TEXT.PREVIEW_AUDIO}</p>
+          <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">{UI_TEXT.PREVIEW_AUDIO}</p>
           <audio src={audioURL} controls className="w-full" />
         </div>
       )}

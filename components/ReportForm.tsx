@@ -97,8 +97,8 @@ const ReportForm: React.FC<ReportFormProps> = ({ settings }) => {
         return (
             <div className="text-center p-8 flex flex-col items-center">
                 <CheckCircleIcon className="w-16 h-16 text-green-500 mb-4" />
-                <h3 className="text-xl font-semibold text-green-700">Laporan Dihantar!</h3>
-                <p className="mt-2 text-gray-600">{success}</p>
+                <h3 className="text-xl font-semibold text-green-700 dark:text-green-400">Laporan Dihantar!</h3>
+                <p className="mt-2 text-gray-600 dark:text-gray-300">{success}</p>
                 <button
                     onClick={resetState}
                     className="mt-6 px-6 py-2 bg-[#6B8A9E] text-white font-semibold rounded-lg shadow-md hover:bg-[#5a7588] transition-colors duration-200"
@@ -112,15 +112,15 @@ const ReportForm: React.FC<ReportFormProps> = ({ settings }) => {
     return (
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">{UI_TEXT.REPORT_TYPE_LABEL}</label>
-          <div className="grid grid-cols-3 gap-2 rounded-lg bg-gray-200 p-1">
-            <button type="button" onClick={() => { setReportType('text'); setMediaBlob(null); }} className={`flex items-center justify-center space-x-2 px-4 py-2 text-sm font-medium rounded-md transition-colors ${reportType === 'text' ? 'bg-white shadow text-[#6B8A9E]' : 'text-gray-600 hover:bg-gray-50'}`}>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{UI_TEXT.REPORT_TYPE_LABEL}</label>
+          <div className="grid grid-cols-3 gap-2 rounded-lg bg-gray-200 dark:bg-gray-700 p-1">
+            <button type="button" onClick={() => { setReportType('text'); setMediaBlob(null); }} className={`flex items-center justify-center space-x-2 px-4 py-2 text-sm font-medium rounded-md transition-colors ${reportType === 'text' ? 'bg-white dark:bg-gray-800 shadow text-[#6B8A9E] dark:text-[#a6c8de]' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600'}`}>
               <TextIcon className="w-5 h-5" /> <span>{UI_TEXT.TEXT}</span>
             </button>
-            <button type="button" onClick={() => { setReportType('audio'); setMediaBlob(null); }} className={`flex items-center justify-center space-x-2 px-4 py-2 text-sm font-medium rounded-md transition-colors ${reportType === 'audio' ? 'bg-white shadow text-[#6B8A9E]' : 'text-gray-600 hover:bg-gray-50'}`}>
+            <button type="button" onClick={() => { setReportType('audio'); setMediaBlob(null); }} className={`flex items-center justify-center space-x-2 px-4 py-2 text-sm font-medium rounded-md transition-colors ${reportType === 'audio' ? 'bg-white dark:bg-gray-800 shadow text-[#6B8A9E] dark:text-[#a6c8de]' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600'}`}>
               <MicIcon className="w-5 h-5" /> <span>{UI_TEXT.AUDIO}</span>
             </button>
-            <button type="button" onClick={() => { setReportType('video'); setMediaBlob(null); }} className={`flex items-center justify-center space-x-2 px-4 py-2 text-sm font-medium rounded-md transition-colors ${reportType === 'video' ? 'bg-white shadow text-[#6B8A9E]' : 'text-gray-600 hover:bg-gray-50'}`}>
+            <button type="button" onClick={() => { setReportType('video'); setMediaBlob(null); }} className={`flex items-center justify-center space-x-2 px-4 py-2 text-sm font-medium rounded-md transition-colors ${reportType === 'video' ? 'bg-white dark:bg-gray-800 shadow text-[#6B8A9E] dark:text-[#a6c8de]' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600'}`}>
               <VideoIcon className="w-5 h-5" /> <span>{UI_TEXT.VIDEO}</span>
             </button>
           </div>
@@ -134,10 +134,10 @@ const ReportForm: React.FC<ReportFormProps> = ({ settings }) => {
                 onChange={(e) => setText(e.target.value)}
                 maxLength={TEXT_CHAR_LIMIT}
                 placeholder={UI_TEXT.TEXT_PLACEHOLDER}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D78F70] focus:border-[#D78F70] transition"
+                className="w-full p-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#D78F70] focus:border-[#D78F70] transition"
                 rows={6}
               />
-              <div className="text-right text-xs text-gray-500 mt-1">
+              <div className="text-right text-xs text-gray-500 dark:text-gray-400 mt-1">
                 {text.length}/{TEXT_CHAR_LIMIT} {UI_TEXT.CHAR_LIMIT_LABEL}
               </div>
             </div>
@@ -147,7 +147,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ settings }) => {
         </div>
         
         {error && (
-            <div className="flex items-center space-x-2 bg-red-100 text-red-700 p-3 rounded-lg">
+            <div className="flex items-center space-x-2 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400 p-3 rounded-lg">
                 <XCircleIcon className="w-5 h-5" />
                 <p className="text-sm">{error}</p>
             </div>
@@ -175,7 +175,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ settings }) => {
             )}
           </button>
            {text.length > 0 && 
-            <p className="flex items-center justify-center text-xs text-gray-500 mt-3">
+            <p className="flex items-center justify-center text-xs text-gray-500 dark:text-gray-400 mt-3">
                 <SparkIcon className="w-4 h-4 mr-1 text-yellow-500" />
                 Laporan teks akan dianalisis menggunakan AI untuk tindakan segera.
             </p>
@@ -187,16 +187,16 @@ const ReportForm: React.FC<ReportFormProps> = ({ settings }) => {
   
     if (settings.isFormDisabled) {
       return (
-          <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8 border border-gray-200 text-center">
-              <LockClosedIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-700">Borang Laporan Dikunci</h3>
-              <p className="mt-2 text-gray-600">Penghantaran laporan telah dilumpuhkan buat sementara waktu oleh pentadbir.</p>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 sm:p-8 border border-gray-200 dark:border-gray-700 text-center">
+              <LockClosedIcon className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-200">Borang Laporan Dikunci</h3>
+              <p className="mt-2 text-gray-600 dark:text-gray-300">Penghantaran laporan telah dilumpuhkan buat sementara waktu oleh pentadbir.</p>
           </div>
       );
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8 border border-gray-200">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 sm:p-8 border border-gray-200 dark:border-gray-700">
       {renderContent()}
     </div>
   );
