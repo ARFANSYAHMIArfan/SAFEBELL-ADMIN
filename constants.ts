@@ -22,6 +22,7 @@ export const UI_TEXT = {
   ERROR_MEDIA: "Gagal mengakses kamera atau mikrofon.",
   ERROR_ANALYSIS: "Gagal menganalisis laporan. Laporan akan dihantar tanpa analisis.",
   RESET_FORM: "Hantar Laporan Lain",
+  CANCEL: "Batalkan",
   LOGIN: "Log Masuk",
   DASHBOARD: "Papan Pemuka",
   ADMIN_LOGIN: "Log Masuk Admin/Guru",

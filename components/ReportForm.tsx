@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { ReportType, WebsiteSettings, Report } from '../types';
 import { UI_TEXT, TEXT_CHAR_LIMIT } from '../constants';
-import { MicIcon, TextIcon, VideoIcon, SendIcon, CheckCircleIcon, XCircleIcon, SparkIcon, LockClosedIcon } from './icons';
+import { MicIcon, TextIcon, VideoIcon, SendIcon, CheckCircleIcon, XCircleIcon, SparkIcon, LockClosedIcon, RefreshIcon } from './icons';
 import AudioRecorder from './AudioRecorder';
 import VideoRecorder from './VideoRecorder';
 import { analyzeReportWithGemini } from '../services/geminiService';
@@ -21,6 +21,8 @@ const ReportForm: React.FC<ReportFormProps> = ({ settings }) => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  const isFormDirty = text.trim() !== '' || mediaBlob !== null;
+
   const resetState = useCallback(() => {
     setReportType('text');
     setText('');
@@ -33,9 +35,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ settings }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isLoading) return;
-    if (reportType === 'text' && !text.trim()) return;
-    if ((reportType === 'audio' || reportType === 'video') && !mediaBlob) return;
+    if (isLoading || !isFormDirty) return;
 
     setIsLoading(true);
     setError(null);
@@ -153,10 +153,10 @@ const ReportForm: React.FC<ReportFormProps> = ({ settings }) => {
             </div>
         )}
 
-        <div className="pt-2">
+        <div className="pt-2 space-y-3">
           <button
             type="submit"
-            disabled={isLoading || (reportType === 'text' && !text.trim()) || ((reportType === 'audio' || reportType === 'video') && !mediaBlob)}
+            disabled={isLoading || !isFormDirty}
             className="w-full flex items-center justify-center space-x-3 px-6 py-3 bg-gradient-to-r from-[#D78F70] to-[#E8A87C] text-white font-bold rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
           >
             {isLoading ? (
@@ -174,8 +174,18 @@ const ReportForm: React.FC<ReportFormProps> = ({ settings }) => {
                 </>
             )}
           </button>
+           {isFormDirty && !isLoading && (
+            <button
+                type="button"
+                onClick={resetState}
+                className="w-full flex items-center justify-center space-x-2 px-6 py-3 bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200 font-semibold rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors duration-200"
+            >
+                <RefreshIcon className="w-5 h-5" />
+                <span>{UI_TEXT.CANCEL}</span>
+            </button>
+           )}
            {text.length > 0 && 
-            <p className="flex items-center justify-center text-xs text-gray-500 dark:text-gray-400 mt-3">
+            <p className="flex items-center justify-center text-xs text-gray-500 dark:text-gray-400">
                 <SparkIcon className="w-4 h-4 mr-1 text-yellow-500" />
                 Laporan teks akan dianalisis menggunakan AI untuk tindakan segera.
             </p>

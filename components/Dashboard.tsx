@@ -185,7 +185,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
             <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
                 <button onClick={() => setActiveTab('reports')} className={`px-4 py-2 text-sm font-semibold transition-colors ${activeTab === 'reports' ? 'border-b-2 border-[#6B8A9E] text-[#6B8A9E] dark:text-[#a6c8de]' : 'text-gray-500 dark:text-gray-400'}`}>Urus Laporan Teks</button>
                 <button onClick={() => setActiveTab('media')} className={`px-4 py-2 text-sm font-semibold transition-colors ${activeTab === 'media' ? 'border-b-2 border-[#6B8A9E] text-[#6B8A9E] dark:text-[#a6c8de]' : 'text-gray-500 dark:text-gray-400'}`}>Arkib Media</button>
-                {userRole === 'admin' && <button onClick={() => setActiveTab('settings')} className={`px-4 py-2 text-sm font-semibold transition-colors ${activeTab === 'settings' ? 'border-b-2 border-[#6B8A9E] text-[#6B8A9E] dark:text-[#a6c8de]' : 'text-gray-500 dark:text-gray-400'}`}>Tetapan</button>}
+                {userRole === 'admin' && <button onClick={() => setActiveTab('settings')} className={`px-4 py-2 text-sm font-semibold transition-colors ${activeTab === 'settings' ? 'border-b-2 border-[#6B8A9E] text-[#6B8A9E] dark:text-[#a6c8de]' : 'text-gray-500 dark:text-gray-400'}`} title="Manage website features and maintenance lock">Tetapan</button>}
             </div>
 
             {/* Content */}
