@@ -3,6 +3,7 @@
   "description": "Laporkan Kejadian Kecemasan DI Sini Secara Anonim Dan Selamat.",
   "requestFramePermissions": [
     "camera",
-    "microphone"
+    "microphone",
+    "geolocation"
   ]
 }
