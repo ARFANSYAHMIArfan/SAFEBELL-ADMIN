@@ -123,7 +123,7 @@ const App: React.FC = () => {
       </main>
 
       <footer className="text-center p-4 text-xs text-gray-500 dark:text-gray-400">
-        <p>© 2025 KitaBUDDY:#JOMCEGAHBULI. Hak Cipta Terpelihara. Dikuasakan oleh Teknologi Anonim AI.</p>
+        <p>© 2025 KitaBUDDY:#JOMCEGAHBULI. Hak Cipta Terpelihara. Dikuasakan Oleh Teknologi AI Anonim.</p>
       </footer>
     </div>
   );

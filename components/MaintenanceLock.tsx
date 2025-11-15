@@ -18,7 +18,7 @@ const MaintenanceLock: React.FC<MaintenanceLockProps> = ({ onUnlock }) => {
             setUnlockTimestamp();
             onUnlock();
         } else {
-            setError('PIN tidak sah. Sila cuba lagi.');
+            setError('Maaf, PIN tidak sah. Sila cuba lagi.');
         }
     };
 
