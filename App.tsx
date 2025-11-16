@@ -6,8 +6,10 @@ import Dashboard from './components/Dashboard';
 import MaintenanceLock from './components/MaintenanceLock';
 import { UserRole, WebsiteSettings, Session } from './types';
 import { isUnlockValid, clearUnlockTimestamp, getDarkModePreference, saveDarkModePreference } from './utils/storage';
-import { fetchGlobalSettings } from './services/settingsService';
+import { fetchGlobalSettings, defaultSettings } from './services/settingsService';
 import { createSession, validateSession, deleteSession } from './services/sessionService';
+import { onSnapshot, doc } from 'firebase/firestore';
+import { db } from './services/firebaseConfig';
 
 const App: React.FC = () => {
   const [userRole, setUserRole] = useState<UserRole>('none');
@@ -30,9 +32,8 @@ const App: React.FC = () => {
   }, [isDarkMode]);
 
   useEffect(() => {
-    const initializeApp = async () => {
-      try {
-        // Check for an active session
+    // One-time session check on initial load
+    const checkSession = async () => {
         const storedSessionId = localStorage.getItem('sessionId');
         if (storedSessionId) {
             const validSession = await validateSession(storedSessionId);
@@ -42,27 +43,59 @@ const App: React.FC = () => {
                 setCurrentPage('dashboard');
             } else {
                 localStorage.removeItem('sessionId');
+            }
+        }
+    };
+    checkSession();
+
+    // Real-time listener for global settings
+    const settingsDocRef = doc(db, 'config', 'global-settings');
+    const unsubscribe = onSnapshot(settingsDocRef, (docSnap) => {
+        const globalSettings = docSnap.exists()
+            ? { ...defaultSettings, ...(docSnap.data() as WebsiteSettings) }
+            : defaultSettings;
+        
+        setSettings(globalSettings); // Keep settings state updated
+
+        const unlocked = isUnlockValid();
+        const shouldBeLocked = globalSettings.isMaintenanceLockEnabled && !unlocked;
+
+        if (shouldBeLocked) {
+            // If a lock is triggered, we should also clear any logged-in state
+            // to prevent being logged in behind the lock screen.
+            if (session) {
+                // No need to hit DB, just clear client-side state
+                localStorage.removeItem('sessionId');
+                setSession(null);
+                setUserRole('none');
                 setCurrentPage('home');
             }
-        } else {
-            setCurrentPage('home');
+        } else if (!globalSettings.isMaintenanceLockEnabled) {
+             // If lock is disabled globally, ensure any unlock timestamp is cleared.
+            clearUnlockTimestamp();
+        }
+        
+        setIsLocked(shouldBeLocked); // This is the single source of truth for the lock screen.
+
+        // Make sure loading screen is removed
+        if (isLoading) {
+            setIsLoading(false);
         }
 
-        // Fetch global settings
-        const globalSettings = await fetchGlobalSettings();
-        setSettings(globalSettings);
-        const unlocked = isUnlockValid();
-        if (globalSettings.isMaintenanceLockEnabled && !unlocked) {
-          setIsLocked(true);
-        }
-      } catch (error) {
-        console.error("Initialization failed:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    initializeApp();
-  }, []);
+    }, (error) => {
+        console.error("Firebase settings listener error:", error);
+        // Fallback to a single fetch
+        fetchGlobalSettings().then(fbSettings => {
+            setSettings(fbSettings);
+            const unlocked = isUnlockValid();
+            setIsLocked(fbSettings.isMaintenanceLockEnabled && !unlocked);
+        }).finally(() => {
+            if (isLoading) setIsLoading(false);
+        });
+    });
+
+    return () => unsubscribe(); // Cleanup on unmount
+  }, [session, isLoading]);
   
   const handleSettingsChange = (newSettings: WebsiteSettings) => {
     setSettings(newSettings);

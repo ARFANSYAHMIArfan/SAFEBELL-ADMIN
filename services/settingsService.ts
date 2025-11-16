@@ -6,7 +6,7 @@ const SETTINGS_COLLECTION = 'config';
 const SETTINGS_DOC_ID = 'global-settings';
 const SETTINGS_KEY = 'safe_app_settings'; // localStorage cache key
 
-const defaultSettings: WebsiteSettings = {
+export const defaultSettings: WebsiteSettings = {
     isFormDisabled: false,
     isMaintenanceLockEnabled: false,
     maintenancePin: '',
