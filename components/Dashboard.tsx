@@ -4,7 +4,8 @@ import { UI_TEXT } from '../constants';
 import { 
     LogoutIcon, SettingsIcon, ShieldIcon, TrashIcon, ChevronDownIcon, 
     ShareIcon, DownloadIcon, ArchiveBoxIcon, BellIcon, ServerIcon, 
-    DatabaseIcon, CheckCircleIcon, XCircleIcon, ExclamationTriangleIcon, UploadIcon, UserGroupIcon
+    DatabaseIcon, CheckCircleIcon, XCircleIcon, ExclamationTriangleIcon, UploadIcon, UserGroupIcon,
+    EyeIcon, EyeSlashIcon
 } from './icons';
 import { deleteReport, mergeAndSaveReports, getReports } from '../utils/storage';
 import { fetchGlobalSettings, updateGlobalSettings } from '../services/settingsService';
@@ -16,7 +17,7 @@ import {
 import { onSnapshot, collection, query, orderBy } from 'firebase/firestore';
 import { db } from '../services/firebaseConfig';
 import DebugPanel from './DebugPanel';
-import { getUsers, addUser, deleteUser as deleteUserService, getUserPassword } from '../services/userService';
+import { getUsers, addUser, deleteUser as deleteUserService, getUserPassword, validateLogin } from '../services/userService';
 
 
 declare const saveAs: any;
@@ -36,11 +37,9 @@ export default function Dashboard({ session, userRole, onLogout, onNavigateHome,
     const [isLoadingReports, setIsLoadingReports] = useState(true);
     const [settings, setSettings] = useState<WebsiteSettings>({ isFormDisabled: false, isMaintenanceLockEnabled: false, maintenancePin: '', fallbackOpenAIKey: '' });
     const [savedSettings, setSavedSettings] = useState<WebsiteSettings>({ isFormDisabled: false, isMaintenanceLockEnabled: false, maintenancePin: '', fallbackOpenAIKey: '' });
-    const [pinInput, setPinInput] = useState('');
     const [backupApiKeyInput, setBackupApiKeyInput] = useState('');
     const [activeTab, setActiveTab] = useState<'reports' | 'media' | 'settings' | 'admin' | 'debug'>('reports');
     const [expandedReportId, setExpandedReportId] = useState<string | null>(null);
-    const [pinError, setPinError] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [copiedReportId, setCopiedReportId] = useState<string | null>(null);
     const [showDownloadOptions, setShowDownloadOptions] = useState<string | null>(null);
@@ -64,6 +63,17 @@ export default function Dashboard({ session, userRole, onLogout, onNavigateHome,
     const [newUserPassword, setNewUserPassword] = useState('');
     const [newUserRole, setNewUserRole] = useState<UserRole>('teacher');
 
+    // Super Admin PIN Management State
+    const [maintenancePinInput, setMaintenancePinInput] = useState('');
+    const [masterResetPinInput, setMasterResetPinInput] = useState('');
+    const [adminActionPinInput, setAdminActionPinInput] = useState('');
+    const [adminDownloadPinInput, setAdminDownloadPinInput] = useState('');
+    const [showMasterPinModal, setShowMasterPinModal] = useState(false);
+    const [masterPinPassword, setMasterPinPassword] = useState('');
+    const [masterPinError, setMasterPinError] = useState('');
+    const [showMasterPins, setShowMasterPins] = useState(false);
+
+
     const fetchUsers = useCallback(async () => {
         setIsLoadingUsers(true);
         try {
@@ -77,7 +87,7 @@ export default function Dashboard({ session, userRole, onLogout, onNavigateHome,
     }, []);
 
     useEffect(() => {
-        if (activeTab === 'admin' && userRole === 'superadmin') {
+        if (activeTab === 'admin' && (userRole === 'admin' || userRole === 'superadmin')) {
             fetchUsers();
         }
     }, [activeTab, userRole, fetchUsers]);
@@ -121,8 +131,12 @@ export default function Dashboard({ session, userRole, onLogout, onNavigateHome,
         fetchGlobalSettings().then(initialSettings => {
             setSettings(initialSettings);
             setSavedSettings(initialSettings);
-            setPinInput(initialSettings.maintenancePin);
             setBackupApiKeyInput(initialSettings.fallbackOpenAIKey || '');
+            // Init super admin pin inputs
+            setMaintenancePinInput(initialSettings.maintenancePin || '');
+            setMasterResetPinInput(initialSettings.masterResetPin || '');
+            setAdminActionPinInput(initialSettings.adminActionPin || '');
+            setAdminDownloadPinInput(initialSettings.adminDownloadPin || '');
         });
 
         return () => unsubscribe();
@@ -164,15 +178,13 @@ export default function Dashboard({ session, userRole, onLogout, onNavigateHome,
     }, [activeTab, userRole, systemStatus, handleRunChecks]);
 
     const handleSettingsSave = async () => {
-        setPinError('');
-        if (settings.isMaintenanceLockEnabled) {
-            if (!/^\d{8}$/.test(pinInput)) {
-                setPinError('PIN mesti 8 digit nombor.');
-                return;
-            }
+        if (settings.isMaintenanceLockEnabled && !settings.maintenancePin) {
+             alert('Sila tetapkan PIN penyelenggaraan di panel Super Admin sebelum mengaktifkan kunci.');
+             setSettings(prev => ({...prev, isMaintenanceLockEnabled: false})); // Revert toggle
+             return;
         }
-        
-        const newSettings = { ...settings, maintenancePin: pinInput, fallbackOpenAIKey: backupApiKeyInput };
+
+        const newSettings = { ...settings, fallbackOpenAIKey: backupApiKeyInput };
         
         const wasPreviouslyLocked = savedSettings.isMaintenanceLockEnabled;
         const isNowLocked = newSettings.isMaintenanceLockEnabled;
@@ -181,20 +193,68 @@ export default function Dashboard({ session, userRole, onLogout, onNavigateHome,
         try {
             await updateGlobalSettings(newSettings);
             setSettings(newSettings);
-            setSavedSettings(newSettings); // Update the saved state to the new settings
+            setSavedSettings(newSettings);
             onSettingsChange(newSettings);
             alert('Selesai! Tetapan telah disimpan!');
 
-            // If the lock was just enabled, log out for security.
             if (!wasPreviouslyLocked && isNowLocked) {
                 setTimeout(() => {
                     alert('Anda telah log keluar untuk tujuan keselamatan selepas mengunci laman web.');
                     onLogout();
-                }, 500); // Short delay to let user read the first alert
+                }, 500);
             }
         } catch (error) {
             console.error("Failed to save settings:", error);
             alert('Gagal menyimpan tetapan. Sila cuba lagi.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleConfirmPinChange = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setMasterPinError('');
+
+        if (!session?.userId) {
+            setMasterPinError("Sesi tidak sah. Sila log masuk semula.");
+            return;
+        }
+
+        // Validate password
+        const user = await validateLogin(session.userId, masterPinPassword);
+        if (!user) {
+            setMasterPinError("Kata laluan tidak sah.");
+            return;
+        }
+
+        // Basic PIN validation
+        if (maintenancePinInput && !/^\d{8}$/.test(maintenancePinInput)) {
+            alert('PIN Penyelenggaraan mesti 8 digit nombor.');
+            return;
+        }
+
+        const newPinSettings: Partial<WebsiteSettings> = {
+            maintenancePin: maintenancePinInput,
+            masterResetPin: masterResetPinInput,
+            adminActionPin: adminActionPinInput,
+            adminDownloadPin: adminDownloadPinInput,
+        };
+
+        const updatedSettings = { ...settings, ...newPinSettings };
+
+        setIsSaving(true);
+        try {
+            await updateGlobalSettings(updatedSettings);
+            setSettings(updatedSettings);
+            setSavedSettings(updatedSettings);
+            onSettingsChange(updatedSettings);
+
+            alert('PIN Keselamatan Induk berjaya dikemas kini!');
+            setShowMasterPinModal(false);
+            setMasterPinPassword('');
+
+        } catch (error) {
+            alert(`Gagal mengemas kini PIN: ${(error as Error).message}`);
         } finally {
             setIsSaving(false);
         }
@@ -510,21 +570,7 @@ export default function Dashboard({ session, userRole, onLogout, onNavigateHome,
                         <div className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform ${settings.isMaintenanceLockEnabled ? 'translate-x-6' : ''}`}></div>
                     </div>
                 </label>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Jika diaktifkan, pelawat akan melihat skrin kunci dan perlu memasukkan PIN untuk mengakses laman web.</p>
-                 {settings.isMaintenanceLockEnabled && (
-                    <div className="mt-4">
-                        <label htmlFor="pin" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Set 8-Digit PIN</label>
-                        <input
-                          type="password"
-                          id="pin"
-                          value={pinInput}
-                          onChange={(e) => setPinInput(e.target.value)}
-                          maxLength={8}
-                          className="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#D78F70] focus:border-[#D78F70]"
-                        />
-                        {pinError && <p className="text-xs text-red-500 mt-1">{pinError}</p>}
-                    </div>
-                 )}
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Jika diaktifkan, pelawat akan melihat skrin kunci dan perlu memasukkan PIN untuk mengakses laman web. PIN hanya boleh ditetapkan oleh Super Admin.</p>
             </div>
 
              <div className="p-4 border dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700/50">
@@ -550,6 +596,53 @@ export default function Dashboard({ session, userRole, onLogout, onNavigateHome,
             >
                 {isSaving ? 'Menyimpan...' : 'Simpan Tetapan'}
             </button>
+
+            {userRole === 'superadmin' && (
+              <div className="mt-6 p-4 border-2 border-red-400 dark:border-red-600 rounded-lg bg-red-50 dark:bg-red-900/40">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h3 className="font-semibold text-red-800 dark:text-red-200 text-lg">Pengurusan PIN Keselamatan Induk (Super Admin Sahaja)</h3>
+                      <p className="text-xs text-red-700 dark:text-red-400 mt-1">
+                          Tindakan ini akan menukar PIN keselamatan kritikal sistem. Teruskan dengan berhati-hati.
+                      </p>
+                    </div>
+                    <button 
+                      onClick={() => setShowMasterPins(prev => !prev)}
+                      className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                      title={showMasterPins ? "Sembunyikan PIN" : "Tunjukkan PIN"}
+                    >
+                        {showMasterPins ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                    </button>
+                  </div>
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">PIN Penyelenggaraan (8-digit)</label>
+                          <input type={showMasterPins ? 'text' : 'password'} value={maintenancePinInput} onChange={e => setMaintenancePinInput(e.target.value)} maxLength={8} className="mt-1 block w-full input-style" />
+                      </div>
+                      <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">PIN Induk Tetapan Semula</label>
+                          <input type={showMasterPins ? 'text' : 'password'} value={masterResetPinInput} onChange={e => setMasterResetPinInput(e.target.value)} className="mt-1 block w-full input-style" />
+                      </div>
+                      <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">PIN Tindakan Pentadbir</label>
+                          <input type={showMasterPins ? 'text' : 'password'} value={adminActionPinInput} onChange={e => setAdminActionPinInput(e.target.value)} className="mt-1 block w-full input-style" />
+                      </div>
+                      <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">PIN Muat Turun Pentadbir</label>
+                          <input type={showMasterPins ? 'text' : 'password'} value={adminDownloadPinInput} onChange={e => setAdminDownloadPinInput(e.target.value)} className="mt-1 block w-full input-style" />
+                      </div>
+                  </div>
+                  <button
+                      onClick={() => setShowMasterPinModal(true)}
+                      className="mt-4 px-4 py-2 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 transition-colors"
+                      disabled={isSaving}
+                  >
+                      {isSaving ? 'Menyimpan...' : 'Simpan Perubahan PIN'}
+                  </button>
+              </div>
+            )}
+
+
             <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">{UI_TEXT.SYSTEM_MONITORING_TITLE}</h3>
                  <div className="p-4 border dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700/50 space-y-4">
@@ -634,63 +727,69 @@ export default function Dashboard({ session, userRole, onLogout, onNavigateHome,
         </div>
     );
     
-    const renderAdminPanel = () => (
-        <div className="space-y-6">
-            <div>
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Tambah Pengguna Baru</h3>
-                <form onSubmit={handleAddNewUser} className="p-4 mt-2 border dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700/50 space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div>
-                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="new-user-id">ID Pengguna</label>
-                             <input id="new-user-id" type="text" value={newUserId} onChange={e => setNewUserId(e.target.value)} className="mt-1 block w-full input-style" required />
+    const renderAdminPanel = () => {
+        const filteredAdminUsers = userRole === 'superadmin' 
+            ? adminUsers 
+            : adminUsers.filter(u => u.role === 'teacher');
+            
+        return (
+            <div className="space-y-6">
+                <div>
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Tambah Pengguna Baru</h3>
+                    <form onSubmit={handleAddNewUser} className="p-4 mt-2 border dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700/50 space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div>
+                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="new-user-id">ID Pengguna</label>
+                                 <input id="new-user-id" type="text" value={newUserId} onChange={e => setNewUserId(e.target.value)} className="mt-1 block w-full input-style" required />
+                            </div>
+                            <div>
+                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="new-user-password">Kata Laluan</label>
+                                 <input id="new-user-password" type="password" value={newUserPassword} onChange={e => setNewUserPassword(e.target.value)} className="mt-1 block w-full input-style" required />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="new-user-role">Peranan</label>
+                                <select id="new-user-role" value={newUserRole} onChange={e => setNewUserRole(e.target.value as UserRole)} className="mt-1 block w-full input-style">
+                                    <option value="teacher">Guru</option>
+                                    {userRole === 'superadmin' && <option value="admin">Admin</option>}
+                                </select>
+                            </div>
                         </div>
-                        <div>
-                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="new-user-password">Kata Laluan</label>
-                             <input id="new-user-password" type="password" value={newUserPassword} onChange={e => setNewUserPassword(e.target.value)} className="mt-1 block w-full input-style" required />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="new-user-role">Peranan</label>
-                            <select id="new-user-role" value={newUserRole} onChange={e => setNewUserRole(e.target.value as UserRole)} className="mt-1 block w-full input-style">
-                                <option value="teacher">Guru</option>
-                                <option value="admin">Admin</option>
-                            </select>
-                        </div>
-                    </div>
-                    <button type="submit" className="px-4 py-2 bg-gradient-to-r from-[#6B8A9E] to-[#5a7588] text-white font-semibold rounded-lg shadow-md hover:opacity-90">Tambah Pengguna</button>
-                </form>
-            </div>
-            <div>
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Senarai Pengguna Sedia Ada</h3>
-                <div className="mt-2 border dark:border-gray-700 rounded-lg overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                             <thead className="bg-gray-50 dark:bg-gray-700/50">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ID Pengguna</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Peranan</th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tindakan</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                {isLoadingUsers ? (
-                                    <tr><td colSpan={3} className="text-center p-4">Memuatkan pengguna...</td></tr>
-                                ) : adminUsers.map(user => (
-                                    <tr key={user.docId}>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{user.id}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300 capitalize">{user.role}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                                            <button onClick={() => handleAdminAction('view', user)} className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-200">Lihat Kata Laluan</button>
-                                            <button onClick={() => handleAdminAction('delete', user)} disabled={user.id === session?.userId} className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-200 disabled:opacity-50 disabled:cursor-not-allowed">Padam</button>
-                                        </td>
+                        <button type="submit" className="px-4 py-2 bg-gradient-to-r from-[#6B8A9E] to-[#5a7588] text-white font-semibold rounded-lg shadow-md hover:opacity-90">Tambah Pengguna</button>
+                    </form>
+                </div>
+                <div>
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Senarai Pengguna Sedia Ada</h3>
+                    <div className="mt-2 border dark:border-gray-700 rounded-lg overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                 <thead className="bg-gray-50 dark:bg-gray-700/50">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ID Pengguna</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Peranan</th>
+                                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tindakan</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                    {isLoadingUsers ? (
+                                        <tr><td colSpan={3} className="text-center p-4">Memuatkan pengguna...</td></tr>
+                                    ) : filteredAdminUsers.map(user => (
+                                        <tr key={user.docId}>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{user.id}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300 capitalize">{user.role}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                                <button onClick={() => handleAdminAction('view', user)} className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-200">Lihat Kata Laluan</button>
+                                                <button onClick={() => handleAdminAction('delete', user)} disabled={user.id === session?.userId} className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-200 disabled:opacity-50 disabled:cursor-not-allowed">Padam</button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    );
+        );
+    }
 
     return (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 sm:p-8 border border-gray-200 dark:border-gray-700">
@@ -730,7 +829,7 @@ export default function Dashboard({ session, userRole, onLogout, onNavigateHome,
                     Arkib Media
                 </button>
                 {(userRole === 'admin' || userRole === 'superadmin') && <button onClick={() => setActiveTab('settings')} className={`flex-shrink-0 px-4 py-2 text-sm font-semibold transition-colors ${activeTab === 'settings' ? 'border-b-2 border-[#6B8A9E] text-[#6B8A9E] dark:text-[#a6c8de]' : 'text-gray-500 dark:text-gray-400'}`}>Tetapan</button>}
-                {userRole === 'superadmin' && <button onClick={() => setActiveTab('admin')} className={`flex items-center space-x-2 flex-shrink-0 px-4 py-2 text-sm font-semibold transition-colors ${activeTab === 'admin' ? 'border-b-2 border-[#6B8A9E] text-[#6B8A9E] dark:text-[#a6c8de]' : 'text-gray-500 dark:text-gray-400'}`}><UserGroupIcon className="w-4 h-4" /><span>Urus Pentadbir</span></button>}
+                {(userRole === 'admin' || userRole === 'superadmin') && <button onClick={() => setActiveTab('admin')} className={`flex items-center space-x-2 flex-shrink-0 px-4 py-2 text-sm font-semibold transition-colors ${activeTab === 'admin' ? 'border-b-2 border-[#6B8A9E] text-[#6B8A9E] dark:text-[#a6c8de]' : 'text-gray-500 dark:text-gray-400'}`}><UserGroupIcon className="w-4 h-4" /><span>Urus Pentadbir</span></button>}
                 {(userRole === 'admin' || userRole === 'superadmin') && <button onClick={() => setActiveTab('debug')} className={`flex-shrink-0 px-4 py-2 text-sm font-semibold transition-colors ${activeTab === 'debug' ? 'border-b-2 border-[#6B8A9E] text-[#6B8A9E] dark:text-[#a6c8de]' : 'text-gray-500 dark:text-gray-400'}`}>Penyahpepijat</button>}
             </div>
 
@@ -738,7 +837,7 @@ export default function Dashboard({ session, userRole, onLogout, onNavigateHome,
                 {activeTab === 'reports' && renderReportList(textReports)}
                 {activeTab === 'media' && renderReportList(mediaReports)}
                 {activeTab === 'settings' && (userRole === 'admin' || userRole === 'superadmin') && renderSettings()}
-                {activeTab === 'admin' && userRole === 'superadmin' && renderAdminPanel()}
+                {activeTab === 'admin' && (userRole === 'admin' || userRole === 'superadmin') && renderAdminPanel()}
                 {activeTab === 'debug' && (userRole === 'admin' || userRole === 'superadmin') && <DebugPanel />}
             </div>
 
@@ -786,6 +885,30 @@ export default function Dashboard({ session, userRole, onLogout, onNavigateHome,
                             <div className="flex justify-end space-x-3 pt-2">
                                 <button type="button" onClick={closeAdminPinModal} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded-lg font-semibold">Batal</button>
                                 <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold">Sahkan</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+            {showMasterPinModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm">
+                        <h3 className="text-lg font-bold text-[#6B8A9E] dark:text-gray-200">Sahkan Perubahan PIN</h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Untuk keselamatan, sila masukkan kata laluan semasa anda untuk menyimpan perubahan PIN.</p>
+                        <form onSubmit={handleConfirmPinChange} className="space-y-4 mt-4">
+                            <input
+                                type="password"
+                                value={masterPinPassword}
+                                onChange={(e) => setMasterPinPassword(e.target.value)}
+                                className="w-full p-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D78F70]"
+                                required autoFocus placeholder="Kata Laluan Semasa"
+                            />
+                            {masterPinError && <p className="text-sm text-red-500 text-center">{masterPinError}</p>}
+                            <div className="flex justify-end space-x-3 pt-2">
+                                <button type="button" onClick={() => { setShowMasterPinModal(false); setMasterPinError(''); setMasterPinPassword(''); }} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded-lg font-semibold">Batal</button>
+                                <button type="submit" disabled={isSaving} className="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold disabled:opacity-50">
+                                    {isSaving ? 'Menyimpan...' : 'Sahkan & Simpan'}
+                                </button>
                             </div>
                         </form>
                     </div>
