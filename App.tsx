@@ -4,18 +4,20 @@ import ReportForm from './components/ReportForm';
 import LoginModal from './components/LoginModal';
 import Dashboard from './components/Dashboard';
 import MaintenanceLock from './components/MaintenanceLock';
-import { UserRole, WebsiteSettings } from './types';
+import { UserRole, WebsiteSettings, Session } from './types';
 import { isUnlockValid, clearUnlockTimestamp, getDarkModePreference, saveDarkModePreference } from './utils/storage';
 import { fetchGlobalSettings } from './services/settingsService';
+import { createSession, validateSession, deleteSession } from './services/sessionService';
 
 const App: React.FC = () => {
   const [userRole, setUserRole] = useState<UserRole>('none');
+  const [session, setSession] = useState<Session | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [currentPage, setCurrentPage] = useState<'home' | 'dashboard'>('home');
   const [settings, setSettings] = useState<WebsiteSettings>({ isFormDisabled: false, isMaintenanceLockEnabled: false, maintenancePin: '' });
   const [isLocked, setIsLocked] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(getDarkModePreference());
-  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -28,19 +30,25 @@ const App: React.FC = () => {
   }, [isDarkMode]);
 
   useEffect(() => {
-    // Check login status on initial load
-    const storedRole = localStorage.getItem('userRole') as UserRole;
-    if (storedRole && storedRole !== 'none') {
-        setUserRole(storedRole);
-        setCurrentPage('dashboard');
-    } else {
-        setCurrentPage('home');
-    }
-  }, []);
-
-  useEffect(() => {
-    const loadSettings = async () => {
+    const initializeApp = async () => {
       try {
+        // Check for an active session
+        const storedSessionId = localStorage.getItem('sessionId');
+        if (storedSessionId) {
+            const validSession = await validateSession(storedSessionId);
+            if (validSession) {
+                setSession(validSession);
+                setUserRole(validSession.role);
+                setCurrentPage('dashboard');
+            } else {
+                localStorage.removeItem('sessionId');
+                setCurrentPage('home');
+            }
+        } else {
+            setCurrentPage('home');
+        }
+
+        // Fetch global settings
         const globalSettings = await fetchGlobalSettings();
         setSettings(globalSettings);
         const unlocked = isUnlockValid();
@@ -48,12 +56,12 @@ const App: React.FC = () => {
           setIsLocked(true);
         }
       } catch (error) {
-        console.error("Could not load global settings:", error);
+        console.error("Initialization failed:", error);
       } finally {
-        setIsLoadingSettings(false);
+        setIsLoading(false);
       }
     };
-    loadSettings();
+    initializeApp();
   }, []);
   
   const handleSettingsChange = (newSettings: WebsiteSettings) => {
@@ -67,15 +75,23 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLoginSuccess = (role: UserRole) => {
-    localStorage.setItem('userRole', role);
-    setUserRole(role);
-    setShowLoginModal(false);
-    setCurrentPage('dashboard');
+  const handleLoginSuccess = async (role: UserRole) => {
+    if (role === 'admin' || role === 'teacher') {
+        const newSession = await createSession(role);
+        localStorage.setItem('sessionId', newSession.id);
+        setSession(newSession);
+        setUserRole(role);
+        setShowLoginModal(false);
+        setCurrentPage('dashboard');
+    }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('userRole');
+  const handleLogout = async () => {
+    if (session) {
+      await deleteSession(session.id);
+    }
+    localStorage.removeItem('sessionId');
+    setSession(null);
     setUserRole('none');
     setCurrentPage('home');
   };
@@ -90,10 +106,10 @@ const App: React.FC = () => {
     setCurrentPage('home');
   };
   
-  if (isLoadingSettings) {
+  if (isLoading) {
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#F8F4EF] dark:bg-gray-900 text-[#3D405B] dark:text-gray-300">
-            <p>Memuatkan tetapan...</p>
+            <p>Memuatkan aplikasi...</p>
         </div>
     );
   }

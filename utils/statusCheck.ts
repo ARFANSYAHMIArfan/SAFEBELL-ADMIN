@@ -1,5 +1,6 @@
 import { TELEGRAM_CONFIG, OPENAI_CONFIG, CEREBRAS_CONFIG, UI_TEXT } from '../constants';
 import { getReports } from './storage';
+import { firebaseError } from '../services/firebaseConfig';
 import { fetchGlobalSettings } from '../services/settingsService';
 
 type Status = 'ok' | 'error' | 'warn' | 'info';
@@ -13,6 +14,7 @@ export interface SystemStatus {
   telegram: StatusItem;
   cerebras: StatusItem;
   openai: StatusItem;
+  firebase: StatusItem;
   storage: StatusItem;
   permissions: {
     camera: StatusItem;
@@ -20,6 +22,17 @@ export interface SystemStatus {
     geolocation: StatusItem;
   };
 }
+
+/**
+ * Checks if the connection to Firebase was successful.
+ */
+export const checkFirebaseStatus = (): StatusItem => {
+  if (firebaseError) {
+    return { status: 'error', message: 'Connection Failed' };
+  }
+  return { status: 'ok', message: UI_TEXT.STATUS_CONNECTED };
+};
+
 
 /**
  * Checks if the Telegram API bot token is valid by calling the getMe endpoint.
@@ -49,28 +62,19 @@ export const checkCerebrasConfig = (): StatusItem => {
 };
 
 /**
- * Checks if the OpenAI API key is configured either in constants or dynamic settings.
+ * Checks if the OpenAI API key is configured, either via constants or admin settings.
  */
 export const checkOpenAIConfig = async (): Promise<StatusItem> => {
-  try {
     const settings = await fetchGlobalSettings();
-    const keyFromSettings = settings.fallbackOpenAIKey;
-    const keyFromConstants = OPENAI_CONFIG.API_KEY || OPENAI_CONFIG.SERVICE_ACCOUNT_API;
+    const hasDynamicKey = settings.fallbackOpenAIKey && settings.fallbackOpenAIKey.startsWith('sk-');
+    const hasHardcodedKey = OPENAI_CONFIG.API_KEY && OPENAI_CONFIG.API_KEY.startsWith('sk-');
 
-    if ((keyFromSettings && keyFromSettings.startsWith('sk-')) || (keyFromConstants && keyFromConstants.startsWith('sk-'))) {
+    if (hasDynamicKey || hasHardcodedKey) {
       return { status: 'ok', message: UI_TEXT.STATUS_OK };
     }
     return { status: 'warn', message: UI_TEXT.STATUS_UNCONFIGURED };
-  } catch (error) {
-    console.error("Failed to check OpenAI config due to settings fetch error:", error);
-    // If settings fail to load, just check constants as a fallback check
-    const keyFromConstants = OPENAI_CONFIG.API_KEY || OPENAI_CONFIG.SERVICE_ACCOUNT_API;
-    if (keyFromConstants && keyFromConstants.startsWith('sk-')) {
-       return { status: 'ok', message: `${UI_TEXT.STATUS_OK} (Default)` };
-    }
-    return { status: 'error', message: 'Failed to Load Settings' };
-  }
 };
+
 
 /**
  * Gets the number of reports stored in the backend.

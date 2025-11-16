@@ -17,3 +17,16 @@ export interface WebsiteSettings {
     maintenancePin: string;
     fallbackOpenAIKey?: string;
 }
+
+export interface Session {
+    id: string;
+    role: UserRole;
+    createdAt: string;
+}
+
+export interface LogEntry {
+    timestamp: string;
+    level: 'info' | 'warn' | 'error';
+    message: string;
+    data?: any;
+}

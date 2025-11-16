@@ -1,60 +1,72 @@
 import { Report } from '../types';
+import { db } from './firebaseConfig';
+import { collection, getDocs, doc, setDoc, deleteDoc, query, orderBy, writeBatch } from 'firebase/firestore';
 
-// Using a separate key in the same kvdb.io bucket for reports.
-const REPORTS_ENDPOINT = 'https://kvdb.io/z4aB7cE9fG2iL5nO8pS1rUvYxZ/app-reports';
+const REPORTS_COLLECTION = 'reports';
 
 /**
- * Fetches all reports from the remote backend.
+ * Fetches all reports from the Firestore backend, ordered by newest first.
  * @returns A promise that resolves to an array of reports.
  */
 export const fetchReports = async (): Promise<Report[]> => {
     try {
-        const response = await fetch(REPORTS_ENDPOINT);
-
-        if (!response.ok) {
-            // A 404 error is expected if no reports have been saved yet.
-            if (response.status === 404) {
-                console.log("No remote reports found, returning empty array.");
-                return [];
-            }
-            throw new Error(`Network response was not ok: ${response.statusText}`);
-        }
-        
-        const reports: Report[] = await response.json();
-        // Sort reports by timestamp in descending order (newest first)
-        return reports.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
+        const reportsCollection = collection(db, REPORTS_COLLECTION);
+        const q = query(reportsCollection, orderBy('timestamp', 'desc'));
+        const querySnapshot = await getDocs(q);
+        const reports: Report[] = [];
+        querySnapshot.forEach((doc) => {
+            reports.push(doc.data() as Report);
+        });
+        return reports;
     } catch (error) {
-        console.error("Failed to fetch remote reports.", error);
-        // To prevent the app from crashing, return an empty array on failure.
-        // A more robust solution might involve retries or showing an error to the user.
-        return [];
+        console.error("Failed to fetch remote reports from Firestore.", error);
+        throw new Error("Gagal memuatkan laporan dari pangkalan data.");
     }
 };
 
 /**
- * Saves the entire list of reports to the remote backend, overwriting the previous state.
- * @param reports The full array of reports to save.
- * @returns A promise that resolves when the reports are successfully saved.
+ * Adds or updates a single report document in Firestore.
+ * @param report The report to save.
  */
-export const saveReports = async (reports: Report[]): Promise<void> => {
+export const addSingleReport = async (report: Report): Promise<void> => {
     try {
-        const response = await fetch(REPORTS_ENDPOINT, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(reports)
-        });
-
-        if (!response.ok) {
-          console.error('Failed to save reports remotely.', await response.text());
-          throw new Error('Failed to save reports to the backend.');
-        }
-
-        console.log("Reports successfully saved to the remote source.");
-
+        const reportDocRef = doc(db, REPORTS_COLLECTION, report.id);
+        await setDoc(reportDocRef, report);
     } catch (error) {
-        console.error("Error sending reports to the remote source:", error);
-        // Re-throw the error so the calling component can handle it, e.g., by notifying the user.
-        throw error;
+        console.error("Error adding report to Firestore:", error);
+        throw new Error('Gagal menyimpan laporan ke pangkalan data.');
+    }
+};
+
+/**
+ * Deletes a single report document from Firestore by its ID.
+ * @param reportId The ID of the report to delete.
+ */
+export const deleteSingleReport = async (reportId: string): Promise<void> => {
+     try {
+        const reportDocRef = doc(db, REPORTS_COLLECTION, reportId);
+        await deleteDoc(reportDocRef);
+    } catch (error) {
+        console.error("Error deleting report from Firestore:", error);
+        throw new Error('Gagal memadam laporan dari pangkalan data.');
+    }
+};
+
+/**
+ * Efficiently saves an array of reports to Firestore, either creating new ones or merging with existing ones.
+ * @param reports The array of reports to save.
+ */
+export const batchSaveReports = async (reports: Report[]): Promise<void> => {
+    try {
+        const batch = writeBatch(db);
+        reports.forEach(report => {
+            const docRef = doc(db, REPORTS_COLLECTION, report.id);
+            // Use merge to update existing documents or create new ones without overwriting.
+            batch.set(docRef, report, { merge: true });
+        });
+        await batch.commit();
+    } catch (error) {
+        console.error("Error batch saving reports to Firestore:", error);
+        throw new Error('Gagal menyimpan laporan ke pangkalan data.');
     }
 };

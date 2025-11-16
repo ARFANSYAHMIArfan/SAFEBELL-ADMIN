@@ -1,6 +1,5 @@
 
 
-
 export const UI_TEXT = {
   TITLE: "S.A.F.E - SMART REPORT",
   SUBTITLE: "Laporkan Kejadian Kecemasan DI Sini Secara Anonim Dan Selamat.",
@@ -52,9 +51,11 @@ export const UI_TEXT = {
   TELEGRAM_API: "API Telegram",
   CEREBRAS_API: "API Cerebras",
   OPENAI_API: "API OpenAI (Sandaran)",
+  FIREBASE_STATUS: "Status Firebase",
   LOCAL_STORAGE: "Storan Tempatan",
   BROWSER_PERMISSIONS: "Kebenaran Pelayar",
   STATUS_OK: "OK",
+  STATUS_CONNECTED: "Bersambung",
   STATUS_ERROR: "Ralat",
   STATUS_UNCONFIGURED: "Tidak Dikonfigurasi",
   REPORTS_STORED: "Laporan Disimpan",
@@ -64,8 +65,12 @@ export const UI_TEXT = {
   RUN_CHECKS: "Jalankan Semakan",
   CHECKING_STATUS: "Menyemak...",
   FALLBACK_API_CONFIG: "Konfigurasi API Sandaran",
-  FALLBACK_API_DESC: "Masukkan kunci API untuk perkhidmatan sandaran (cth: OpenAI) sekiranya API utama gagal. Ini akan mengatasi kunci yang dikonfigurasikan secara lalai.",
-  FALLBACK_API_KEY_LABEL: "Kunci API OpenAI Sandaran",
+  FALLBACK_API_KEY: "Kunci API AI Sandaran (OpenAI)",
+  FALLBACK_API_DESC: "Kunci ini akan digunakan jika API Cerebras utama gagal. Ia akan mengatasi kunci yang dikodkan keras dalam aplikasi.",
+  DEBUG_PANEL_TITLE: "Panel Penyahpepijat",
+  DEBUG_PANEL_DESC: "Log peristiwa sistem masa nyata untuk penyelesaian masalah.",
+  CLEAR_LOGS: "Kosongkan Log",
+  REFRESH_LOGS: "Segar Semula Log",
 };
 
 export const TELEGRAM_CONFIG = {

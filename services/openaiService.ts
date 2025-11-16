@@ -1,16 +1,13 @@
 import { OPENAI_CONFIG } from '../constants';
-import { fetchGlobalSettings } from './settingsService';
+import { addLog } from './logService';
 
-// The service account key from constants acts as the ultimate fallback.
-const FALLBACK_KEY_FROM_CONSTANTS = OPENAI_CONFIG.SERVICE_ACCOUNT_API;
+const HARDCODED_API_KEY = OPENAI_CONFIG.API_KEY;
 
-export const analyzeReportWithOpenAI = async (reportText: string): Promise<string> => {
-    // Fetch the latest settings from the backend to get the dynamically configured key.
-    const settings = await fetchGlobalSettings();
-    const API_KEY = settings.fallbackOpenAIKey || FALLBACK_KEY_FROM_CONSTANTS;
+export const analyzeReportWithOpenAI = async (reportText: string, dynamicApiKey?: string): Promise<string> => {
+    const API_KEY = dynamicApiKey || HARDCODED_API_KEY;
 
     if (!API_KEY) {
-        console.warn("OpenAI API key not found in settings or constants.");
+        addLog('error', 'OpenAI analysis skipped: No API key available.');
         throw new Error("OpenAI API key not configured.");
     }
 
@@ -29,7 +26,9 @@ export const analyzeReportWithOpenAI = async (reportText: string): Promise<strin
   `;
 
     try {
-        console.log("Attempting analysis with OpenAI...");
+        const source = dynamicApiKey ? 'Admin-Configured Key' : 'Hardcoded Key';
+        addLog('info', `Attempting analysis with OpenAI using ${source}.`);
+        
         const response = await fetch("https://api.openai.com/v1/chat/completions", {
             method: 'POST',
             headers: {
@@ -45,16 +44,17 @@ export const analyzeReportWithOpenAI = async (reportText: string): Promise<strin
         
         if (!response.ok) {
             const errorData = await response.json();
-            console.error("OpenAI API Error:", errorData);
+            addLog('error', 'OpenAI API Error', { status: response.status, body: errorData });
             throw new Error(`OpenAI API request failed: ${errorData.error?.message || response.statusText}`);
         }
 
         const data = await response.json();
-        console.log("OpenAI analysis successful.");
-        return data.choices[0]?.message?.content?.trim() || "Tidak dapat mendapatkan analisis daripada OpenAI.";
+        const analysis = data.choices[0]?.message?.content?.trim() || "Tidak dapat mendapatkan analisis daripada OpenAI.";
+        addLog('info', 'OpenAI analysis successful.');
+        return analysis;
 
     } catch (error) {
-        console.error("Error calling OpenAI API:", error);
-        throw new Error("Failed to get analysis from OpenAI API.");
+        // The error is already logged by the caller (geminiService), so we just re-throw.
+        throw error;
     }
 };

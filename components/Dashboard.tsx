@@ -1,18 +1,23 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { UserRole, Report, WebsiteSettings, ReportType } from '../types';
+import { UserRole, Report, WebsiteSettings } from '../types';
 import { UI_TEXT, ADMIN_DOWNLOAD_PIN } from '../constants';
 import { 
     LogoutIcon, SettingsIcon, ShieldIcon, TrashIcon, ChevronDownIcon, 
     ShareIcon, DownloadIcon, ArchiveBoxIcon, BellIcon, ServerIcon, 
     DatabaseIcon, CheckCircleIcon, XCircleIcon, ExclamationTriangleIcon, UploadIcon 
 } from './icons';
-import { getReports, deleteReport, mergeAndSaveReports } from '../utils/storage';
+// FIX: Import 'getReports' to be used for downloading all reports.
+import { deleteReport, mergeAndSaveReports, getReports } from '../utils/storage';
 import { fetchGlobalSettings, updateGlobalSettings } from '../services/settingsService';
 import { downloadAsPdf, downloadAsDocx } from '../services/downloadService';
 import { 
     checkTelegramApi, checkCerebrasConfig, checkOpenAIConfig, 
-    getReportCount, checkPermissions, SystemStatus 
+    getReportCount, checkPermissions, SystemStatus, checkFirebaseStatus
 } from '../utils/statusCheck';
+import { onSnapshot, collection, query, orderBy } from 'firebase/firestore';
+import { db } from '../services/firebaseConfig';
+import DebugPanel from './DebugPanel';
+
 
 declare const saveAs: any;
 
@@ -23,17 +28,15 @@ interface DashboardProps {
   onSettingsChange: (settings: WebsiteSettings) => void;
 }
 
-const POLLING_INTERVAL = 15000; // 15 seconds
-
 const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHome, onSettingsChange }) => {
     const roleText = userRole === 'admin' ? 'Admin' : 'Guru';
     
     const [reports, setReports] = useState<Report[]>([]);
     const [isLoadingReports, setIsLoadingReports] = useState(true);
-    const [settings, setSettings] = useState<WebsiteSettings>({ isFormDisabled: false, isMaintenanceLockEnabled: false, maintenancePin: '' });
+    const [settings, setSettings] = useState<WebsiteSettings>({ isFormDisabled: false, isMaintenanceLockEnabled: false, maintenancePin: '', fallbackOpenAIKey: '' });
     const [pinInput, setPinInput] = useState('');
-    const [fallbackKeyInput, setFallbackKeyInput] = useState('');
-    const [activeTab, setActiveTab] = useState<'reports' | 'media' | 'settings'>('reports');
+    const [backupApiKeyInput, setBackupApiKeyInput] = useState('');
+    const [activeTab, setActiveTab] = useState<'reports' | 'media' | 'settings' | 'debug'>('reports');
     const [expandedReportId, setExpandedReportId] = useState<string | null>(null);
     const [pinError, setPinError] = useState('');
     const [isSaving, setIsSaving] = useState(false);
@@ -46,46 +49,51 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
     const [systemStatus, setSystemStatus] = useState<SystemStatus | null>(null);
     const [isCheckingStatus, setIsCheckingStatus] = useState(false);
     const [uploadStatus, setUploadStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-    const reportsRef = useRef(reports);
+    const reportsRef = useRef<Report[]>([]);
 
     useEffect(() => {
         reportsRef.current = reports;
     }, [reports]);
 
-    const fetchAndSetReports = useCallback(async () => {
-        try {
-            const fetchedReports = await getReports();
-            setReports(fetchedReports);
-        } catch (error) {
-            console.error("Failed to fetch reports:", error);
-        } finally {
-            setIsLoadingReports(false);
-        }
-    }, []);
-
     useEffect(() => {
-        fetchAndSetReports();
+        setIsLoadingReports(true);
+        const reportsCollection = collection(db, 'reports');
+        const q = query(reportsCollection, orderBy('timestamp', 'desc'));
+
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+            const fetchedReports: Report[] = [];
+            const isInitialLoad = reportsRef.current.length === 0;
+
+            querySnapshot.forEach((doc) => {
+                fetchedReports.push(doc.data() as Report);
+            });
+
+            if (!isInitialLoad && fetchedReports.length > reportsRef.current.length) {
+                const newReport = fetchedReports[0]; 
+                const isTrulyNew = !reportsRef.current.some(r => r.id === newReport.id);
+                if (isTrulyNew) {
+                    setNotification({
+                        id: newReport.id,
+                        message: `${UI_TEXT.NEW_REPORT_NOTIFICATION} (Jenis: ${newReport.type})`,
+                    });
+                }
+            }
+            
+            setReports(fetchedReports);
+            setIsLoadingReports(false);
+        }, (error) => {
+            console.error("Error listening to reports collection:", error);
+            setIsLoadingReports(false);
+        });
+
         fetchGlobalSettings().then(initialSettings => {
             setSettings(initialSettings);
             setPinInput(initialSettings.maintenancePin);
-            setFallbackKeyInput(initialSettings.fallbackOpenAIKey || '');
+            setBackupApiKeyInput(initialSettings.fallbackOpenAIKey || '');
         });
 
-        // Polling for new reports
-        const intervalId = setInterval(async () => {
-            const latestReports = await getReports();
-            if (latestReports.length > reportsRef.current.length) {
-                const newReport = latestReports[0];
-                setNotification({
-                    id: newReport.id,
-                    message: `${UI_TEXT.NEW_REPORT_NOTIFICATION} (Jenis: ${newReport.type})`,
-                });
-            }
-            setReports(latestReports);
-        }, POLLING_INTERVAL);
-
-        return () => clearInterval(intervalId);
-    }, [fetchAndSetReports]);
+        return () => unsubscribe();
+    }, []);
     
     useEffect(() => {
         if (notification) {
@@ -103,11 +111,13 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
             checkOpenAIConfig(),
         ]);
         const cerebras = checkCerebrasConfig();
+        const firebase = checkFirebaseStatus();
         
         setSystemStatus({
             telegram: tg,
             cerebras,
             openai,
+            firebase,
             storage: reportCount,
             permissions: perms,
         });
@@ -129,11 +139,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
             }
         }
         
-        const newSettings = { 
-            ...settings, 
-            maintenancePin: pinInput,
-            fallbackOpenAIKey: fallbackKeyInput.trim(),
-        };
+        const newSettings = { ...settings, maintenancePin: pinInput, fallbackOpenAIKey: backupApiKeyInput };
         setIsSaving(true);
         try {
             await updateGlobalSettings(newSettings);
@@ -150,8 +156,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
 
     const handleDeleteReport = async (reportId: string) => {
         if (window.confirm('Adakah anda pasti mahu memadam laporan ini?')) {
-            await deleteReport(reportId);
-            fetchAndSetReports(); // Refresh reports list from backend
+            try {
+                await deleteReport(reportId);
+            } catch (error) {
+                console.error("Failed to delete report:", error);
+                alert("Gagal memadam laporan.");
+            }
         }
     };
 
@@ -231,22 +241,18 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
                 await mergeAndSaveReports(importedReports);
                 
                 setUploadStatus({ type: 'success', message: `Berjaya mengimport dan menggabungkan ${importedReports.length} laporan.` });
-                
-                // Refresh the view
-                await fetchAndSetReports();
-
             } catch (error) {
                 console.error("Gagal mengimport laporan:", error);
                 const errorMessage = error instanceof Error ? error.message : "Ralat tidak diketahui berlaku.";
                 setUploadStatus({ type: 'error', message: `Gagal mengimport: ${errorMessage}` });
             } finally {
-                inputElement.value = ''; // Reset file input
+                inputElement.value = '';
             }
         };
 
         reader.onerror = () => {
             setUploadStatus({ type: 'error', message: 'Gagal membaca fail.' });
-            inputElement.value = ''; // Reset file input
+            inputElement.value = '';
         };
 
         reader.readAsText(file);
@@ -385,27 +391,25 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
                  )}
             </div>
 
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">{UI_TEXT.FALLBACK_API_CONFIG}</h3>
-                <div className="p-4 border dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700/50">
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{UI_TEXT.FALLBACK_API_DESC}</p>
-                    <div>
-                        <label htmlFor="fallback-key" className="block text-sm font-medium text-gray-700 dark:text-gray-300">{UI_TEXT.FALLBACK_API_KEY_LABEL}</label>
-                        <input
-                          type="password"
-                          id="fallback-key"
-                          value={fallbackKeyInput}
-                          onChange={(e) => setFallbackKeyInput(e.target.value)}
-                          placeholder="sk-..."
-                          className="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#D78F70] focus:border-[#D78F70]"
-                        />
-                    </div>
+             <div className="p-4 border dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                <h4 className="font-semibold text-gray-700 dark:text-gray-200">{UI_TEXT.FALLBACK_API_CONFIG}</h4>
+                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{UI_TEXT.FALLBACK_API_DESC}</p>
+                <div className="mt-4">
+                    <label htmlFor="backup-api-key" className="block text-sm font-medium text-gray-700 dark:text-gray-300">{UI_TEXT.FALLBACK_API_KEY}</label>
+                    <input
+                      type="password"
+                      id="backup-api-key"
+                      value={backupApiKeyInput}
+                      onChange={(e) => setBackupApiKeyInput(e.target.value)}
+                      placeholder="Masukkan kunci API di sini"
+                      className="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#D78F70] focus:border-[#D78F70]"
+                    />
                 </div>
             </div>
             
             <button 
                 onClick={handleSettingsSave} 
-                className="mt-6 px-6 py-2 bg-gradient-to-r from-[#D78F70] to-[#E8A87C] text-white font-bold rounded-lg shadow-lg hover:shadow-xl disabled:opacity-50"
+                className="px-6 py-2 bg-gradient-to-r from-[#D78F70] to-[#E8A87C] text-white font-bold rounded-lg shadow-lg hover:shadow-xl disabled:opacity-50"
                 disabled={isSaving}
             >
                 {isSaving ? 'Menyimpan...' : 'Simpan Tetapan'}
@@ -416,9 +420,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
                      {isCheckingStatus && <p className="text-sm italic text-gray-500 dark:text-gray-400">Menyemak status sistem...</p>}
                      {!isCheckingStatus && systemStatus && (
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                             {/* API Status */}
                             <div className="space-y-3">
                                 <h4 className="font-semibold text-gray-700 dark:text-gray-300">{UI_TEXT.API_STATUS}</h4>
+                                <div className="flex items-center justify-between text-sm">
+                                    <span className="flex items-center"><ServerIcon className="w-4 h-4 mr-2" />{UI_TEXT.FIREBASE_STATUS}</span>
+                                    {renderStatusBadge(systemStatus.firebase)}
+                                </div>
                                 <div className="flex items-center justify-between text-sm">
                                     <span className="flex items-center"><ServerIcon className="w-4 h-4 mr-2" />{UI_TEXT.TELEGRAM_API}</span>
                                     {renderStatusBadge(systemStatus.telegram)}
@@ -432,7 +439,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
                                     {renderStatusBadge(systemStatus.openai)}
                                 </div>
                             </div>
-                             {/* Storage and Permissions */}
                             <div className="space-y-3">
                                 <h4 className="font-semibold text-gray-700 dark:text-gray-300">{UI_TEXT.LOCAL_STORAGE}</h4>
                                 <div className="flex items-center justify-between text-sm">
@@ -494,7 +500,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
     
     return (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 sm:p-8 border border-gray-200 dark:border-gray-700">
-            {/* Notification Toast */}
             {notification && (
                 <div className="fixed top-20 right-5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-4 flex items-center space-x-3 z-50 animate-pulse">
                     <BellIcon className="w-6 h-6 text-[#6B8A9E]" />
@@ -506,7 +511,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
                 </div>
             )}
 
-            {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
                  <div>
                     <h2 className="text-2xl font-bold text-[#6B8A9E] dark:text-gray-200">{UI_TEXT.DASHBOARD}</h2>
@@ -524,25 +528,24 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
                 </div>
             </div>
 
-            {/* Tabs */}
-            <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
-                <button onClick={() => setActiveTab('reports')} className={`relative px-4 py-2 text-sm font-semibold transition-colors ${activeTab === 'reports' ? 'border-b-2 border-[#6B8A9E] text-[#6B8A9E] dark:text-[#a6c8de]' : 'text-gray-500 dark:text-gray-400'}`}>
+            <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6 overflow-x-auto">
+                <button onClick={() => setActiveTab('reports')} className={`flex-shrink-0 relative px-4 py-2 text-sm font-semibold transition-colors ${activeTab === 'reports' ? 'border-b-2 border-[#6B8A9E] text-[#6B8A9E] dark:text-[#a6c8de]' : 'text-gray-500 dark:text-gray-400'}`}>
                     Urus Laporan Teks
                 </button>
-                <button onClick={() => setActiveTab('media')} className={`relative px-4 py-2 text-sm font-semibold transition-colors ${activeTab === 'media' ? 'border-b-2 border-[#6B8A9E] text-[#6B8A9E] dark:text-[#a6c8de]' : 'text-gray-500 dark:text-gray-400'}`}>
+                <button onClick={() => setActiveTab('media')} className={`flex-shrink-0 relative px-4 py-2 text-sm font-semibold transition-colors ${activeTab === 'media' ? 'border-b-2 border-[#6B8A9E] text-[#6B8A9E] dark:text-[#a6c8de]' : 'text-gray-500 dark:text-gray-400'}`}>
                     Arkib Media
                 </button>
-                {userRole === 'admin' && <button onClick={() => setActiveTab('settings')} className={`px-4 py-2 text-sm font-semibold transition-colors ${activeTab === 'settings' ? 'border-b-2 border-[#6B8A9E] text-[#6B8A9E] dark:text-[#a6c8de]' : 'text-gray-500 dark:text-gray-400'}`} title="Manage website features and maintenance lock">Tetapan</button>}
+                {userRole === 'admin' && <button onClick={() => setActiveTab('settings')} className={`flex-shrink-0 px-4 py-2 text-sm font-semibold transition-colors ${activeTab === 'settings' ? 'border-b-2 border-[#6B8A9E] text-[#6B8A9E] dark:text-[#a6c8de]' : 'text-gray-500 dark:text-gray-400'}`}>Tetapan</button>}
+                {userRole === 'admin' && <button onClick={() => setActiveTab('debug')} className={`flex-shrink-0 px-4 py-2 text-sm font-semibold transition-colors ${activeTab === 'debug' ? 'border-b-2 border-[#6B8A9E] text-[#6B8A9E] dark:text-[#a6c8de]' : 'text-gray-500 dark:text-gray-400'}`}>Penyahpepijat</button>}
             </div>
 
-            {/* Content */}
             <div>
                 {activeTab === 'reports' && renderReportList(textReports)}
                 {activeTab === 'media' && renderReportList(mediaReports)}
                 {activeTab === 'settings' && userRole === 'admin' && renderSettings()}
+                {activeTab === 'debug' && userRole === 'admin' && <DebugPanel />}
             </div>
 
-            {/* PIN Modal for Download */}
             {showDownloadPinModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 transition-opacity p-4">
                     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm m-4 transform transition-all">

@@ -1,5 +1,5 @@
 import { Report, WebsiteSettings } from '../types';
-import { fetchReports, saveReports } from '../services/reportService';
+import { fetchReports, addSingleReport, deleteSingleReport, batchSaveReports } from '../services/reportService';
 
 const UNLOCK_TIMESTAMP_KEY = 'safe_app_unlock_timestamp';
 const DARK_MODE_KEY = 'safe_app_dark_mode';
@@ -13,49 +13,30 @@ const defaultSettings: WebsiteSettings = {
     maintenancePin: '',
 };
 
-// Reports Management (now interfaces with the backend service)
+// Reports Management (now interfaces with the Firebase backend service)
 export const getReports = async (): Promise<Report[]> => {
     return await fetchReports();
 };
 
 export const addReport = async (report: Report): Promise<void> => {
-    const reports = await fetchReports();
-    // Prepend the new report to maintain reverse chronological order
-    const updatedReports = [report, ...reports];
-    await saveReports(updatedReports);
+    await addSingleReport(report);
 };
 
 export const deleteReport = async (reportId: string): Promise<void> => {
-    const reports = await fetchReports();
-    const updatedReports = reports.filter(r => r.id !== reportId);
-    await saveReports(updatedReports);
+    await deleteSingleReport(reportId);
 };
 
 export const mergeAndSaveReports = async (newReports: Report[]): Promise<void> => {
-    const existingReports = await fetchReports();
-    const reportsMap = new Map<string, Report>();
-
-    // Add existing reports to the map
-    for (const report of existingReports) {
-        reportsMap.set(report.id, report);
-    }
-
-    // Add/update with new reports
-    for (const report of newReports) {
-        // Basic validation of the report object
-        if (report.id && report.timestamp && report.type) { // content can be null/undefined for media
-             reportsMap.set(report.id, report);
-        } else {
-            console.warn("Skipping invalid report object from JSON:", report);
+    const validReports = newReports.filter(report => {
+        if (report.id && report.timestamp && report.type) {
+            return true;
         }
-    }
+        console.warn("Skipping invalid report object from JSON:", report);
+        return false;
+    });
     
-    let mergedReports = Array.from(reportsMap.values());
-
-    // Re-sort all reports by timestamp descending to maintain order
-    mergedReports.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    
-    await saveReports(mergedReports);
+    // Batch save will update existing reports (by ID) and add new ones.
+    await batchSaveReports(validReports);
 };
 
 
