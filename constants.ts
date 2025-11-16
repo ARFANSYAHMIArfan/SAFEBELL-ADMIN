@@ -1,5 +1,6 @@
 
 
+
 export const UI_TEXT = {
   TITLE: "S.A.F.E - SMART REPORT",
   SUBTITLE: "Laporkan Kejadian Kecemasan DI Sini Secara Anonim Dan Selamat.",
@@ -68,7 +69,7 @@ export const UI_TEXT = {
 };
 
 export const TELEGRAM_CONFIG = {
-    API_KEY: "8442585359:AAEBt1xupGHvayRPMRFlumdBSnbbcBV_-74/",
+    API_KEY: "8442585359:AAEBt1xupGHvayRPMRFlumdBSnbbcBV_-74",
     CHAT_ID: "-1003022468499"
 };
 
