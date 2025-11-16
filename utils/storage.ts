@@ -53,11 +53,11 @@ export const getSettings = (): WebsiteSettings => {
 
 // Unlock Status Management
 export const setUnlockTimestamp = (): void => {
-    localStorage.setItem(UNLOCK_TIMESTAMP_KEY, Date.now().toString());
+    sessionStorage.setItem(UNLOCK_TIMESTAMP_KEY, Date.now().toString());
 };
 
 export const isUnlockValid = (): boolean => {
-    const timestampStr = localStorage.getItem(UNLOCK_TIMESTAMP_KEY);
+    const timestampStr = sessionStorage.getItem(UNLOCK_TIMESTAMP_KEY);
     if (!timestampStr) {
         return false;
     }
@@ -66,7 +66,7 @@ export const isUnlockValid = (): boolean => {
 };
 
 export const clearUnlockTimestamp = (): void => {
-    localStorage.removeItem(UNLOCK_TIMESTAMP_KEY);
+    sessionStorage.removeItem(UNLOCK_TIMESTAMP_KEY);
 };
 
 // Dark Mode Management

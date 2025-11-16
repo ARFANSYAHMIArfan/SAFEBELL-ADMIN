@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { UserRole, Report, WebsiteSettings } from '../types';
-import { UI_TEXT, ADMIN_DOWNLOAD_PIN } from '../constants';
+import { UserRole, Report, WebsiteSettings, Session, UserCredentials } from '../types';
+import { UI_TEXT } from '../constants';
 import { 
     LogoutIcon, SettingsIcon, ShieldIcon, TrashIcon, ChevronDownIcon, 
     ShareIcon, DownloadIcon, ArchiveBoxIcon, BellIcon, ServerIcon, 
-    DatabaseIcon, CheckCircleIcon, XCircleIcon, ExclamationTriangleIcon, UploadIcon 
+    DatabaseIcon, CheckCircleIcon, XCircleIcon, ExclamationTriangleIcon, UploadIcon, UserGroupIcon
 } from './icons';
 import { deleteReport, mergeAndSaveReports, getReports } from '../utils/storage';
 import { fetchGlobalSettings, updateGlobalSettings } from '../services/settingsService';
@@ -16,19 +16,21 @@ import {
 import { onSnapshot, collection, query, orderBy } from 'firebase/firestore';
 import { db } from '../services/firebaseConfig';
 import DebugPanel from './DebugPanel';
+import { getUsers, addUser, deleteUser as deleteUserService, getUserPassword } from '../services/userService';
 
 
 declare const saveAs: any;
 
 interface DashboardProps {
+  session: Session | null;
   userRole: UserRole;
   onLogout: () => void;
   onNavigateHome: () => void;
   onSettingsChange: (settings: WebsiteSettings) => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHome, onSettingsChange }) => {
-    const roleText = userRole === 'admin' ? 'Admin' : 'Guru';
+export default function Dashboard({ session, userRole, onLogout, onNavigateHome, onSettingsChange }: DashboardProps): React.JSX.Element {
+    const roleText = userRole === 'superadmin' ? 'Super Admin' : userRole === 'admin' ? 'Admin' : 'Guru';
     
     const [reports, setReports] = useState<Report[]>([]);
     const [isLoadingReports, setIsLoadingReports] = useState(true);
@@ -36,7 +38,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
     const [savedSettings, setSavedSettings] = useState<WebsiteSettings>({ isFormDisabled: false, isMaintenanceLockEnabled: false, maintenancePin: '', fallbackOpenAIKey: '' });
     const [pinInput, setPinInput] = useState('');
     const [backupApiKeyInput, setBackupApiKeyInput] = useState('');
-    const [activeTab, setActiveTab] = useState<'reports' | 'media' | 'settings' | 'debug'>('reports');
+    const [activeTab, setActiveTab] = useState<'reports' | 'media' | 'settings' | 'admin' | 'debug'>('reports');
     const [expandedReportId, setExpandedReportId] = useState<string | null>(null);
     const [pinError, setPinError] = useState('');
     const [isSaving, setIsSaving] = useState(false);
@@ -50,6 +52,36 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
     const [isCheckingStatus, setIsCheckingStatus] = useState(false);
     const [uploadStatus, setUploadStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
     const reportsRef = useRef<Report[]>([]);
+
+    // Admin Panel State
+    const [adminUsers, setAdminUsers] = useState<UserCredentials[]>([]);
+    const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+    const [showAdminPinModal, setShowAdminPinModal] = useState(false);
+    const [adminPinModalConfig, setAdminPinModalConfig] = useState<{ action: 'delete' | 'view'; user: UserCredentials | null }>({ action: 'delete', user: null });
+    const [adminActionPin, setAdminActionPin] = useState('');
+    const [adminActionPinError, setAdminActionPinError] = useState('');
+    const [newUserId, setNewUserId] = useState('');
+    const [newUserPassword, setNewUserPassword] = useState('');
+    const [newUserRole, setNewUserRole] = useState<UserRole>('teacher');
+
+    const fetchUsers = useCallback(async () => {
+        setIsLoadingUsers(true);
+        try {
+            const users = await getUsers();
+            setAdminUsers(users);
+        } catch (error) {
+            alert((error as Error).message);
+        } finally {
+            setIsLoadingUsers(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (activeTab === 'admin' && userRole === 'superadmin') {
+            fetchUsers();
+        }
+    }, [activeTab, userRole, fetchUsers]);
+
 
     useEffect(() => {
         reportsRef.current = reports;
@@ -126,7 +158,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
     }, []);
 
     useEffect(() => {
-        if (activeTab === 'settings' && userRole === 'admin' && !systemStatus) {
+        if (activeTab === 'settings' && (userRole === 'admin' || userRole === 'superadmin') && !systemStatus) {
             handleRunChecks();
         }
     }, [activeTab, userRole, systemStatus, handleRunChecks]);
@@ -217,7 +249,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
 
     const handleConfirmDownload = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (downloadPin === ADMIN_DOWNLOAD_PIN) {
+        if (downloadPin === settings.adminDownloadPin) {
             setDownloadPinError('');
             
             const allReports = await getReports();
@@ -270,6 +302,72 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
         };
 
         reader.readAsText(file);
+    };
+
+    const handleAddNewUser = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newUserId.trim() || !newUserPassword.trim()) {
+            alert("ID Pengguna dan Kata Laluan mesti diisi.");
+            return;
+        }
+        try {
+            await addUser(newUserId, newUserPassword, newUserRole);
+            alert("Pengguna baharu berjaya ditambah.");
+            setNewUserId('');
+            setNewUserPassword('');
+            setNewUserRole('teacher');
+            fetchUsers();
+        } catch (error) {
+            alert(`Gagal menambah pengguna: ${(error as Error).message}`);
+        }
+    };
+
+    const closeAdminPinModal = () => {
+        setShowAdminPinModal(false);
+        setAdminActionPin('');
+        setAdminActionPinError('');
+        setAdminPinModalConfig({ action: 'delete', user: null });
+    };
+
+    const handleAdminAction = (action: 'delete' | 'view', user: UserCredentials) => {
+        setAdminPinModalConfig({ action, user });
+        setShowAdminPinModal(true);
+    };
+
+    const handleAdminPinSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (adminActionPin !== settings.adminActionPin) {
+            setAdminActionPinError(UI_TEXT.INVALID_PIN);
+            return;
+        }
+
+        const { action, user } = adminPinModalConfig;
+        if (!user) return;
+
+        try {
+            if (action === 'delete') {
+                if (user.id === session?.userId) {
+                    alert("Anda tidak boleh memadam akaun anda sendiri.");
+                } else {
+                    if (window.confirm(`Adakah anda pasti mahu memadam pengguna "${user.id}"? Tindakan ini tidak boleh diubah.`)) {
+                        await deleteUserService(user.docId);
+                        alert(`Pengguna "${user.id}" telah dipadam.`);
+                        fetchUsers();
+                    }
+                }
+            } else if (action === 'view') {
+                const password = await getUserPassword(user.docId);
+                if (password) {
+                    alert(`Kata Laluan untuk ${user.id}:\n\n${password}`);
+                } else {
+                    alert('Tidak dapat mengambil kata laluan.');
+                }
+            }
+        } catch (error) {
+            alert(`Operasi gagal: ${(error as Error).message}`);
+        } finally {
+            closeAdminPinModal();
+        }
     };
 
     const textReports = reports.filter(r => r.type === 'text');
@@ -354,7 +452,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
                                             )}
                                         </div>
 
-                                        {userRole === 'admin' && (
+                                        {(userRole === 'admin' || userRole === 'superadmin') && (
                                              <button onClick={() => handleDeleteReport(report.id)} className="flex items-center space-x-2 px-3 py-1.5 text-xs font-semibold rounded-lg shadow-sm transition-colors duration-200 bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900">
                                                 <TrashIcon className="w-4 h-4" />
                                                 <span>{UI_TEXT.DELETE_REPORT}</span>
@@ -374,7 +472,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
         const styles = {
             ok: { icon: <CheckCircleIcon className="w-5 h-5 text-green-500" />, text: 'text-green-700 dark:text-green-400', bg: 'bg-green-100 dark:bg-green-900/50' },
             error: { icon: <XCircleIcon className="w-5 h-5 text-red-500" />, text: 'text-red-700 dark:text-red-400', bg: 'bg-red-100 dark:bg-red-900/50' },
-            warn: { icon: <ExclamationTriangleIcon className="w-5 h-5 text-yellow-500" />, text: 'text-yellow-700 dark:text-yellow-400', bg: 'bg-yellow-100 dark:bg-yellow-900/50' },
+            warn: { icon: <ExclamationTriangleIcon className="w-5 h-5 text-yellow-500" />, text: 'text-yellow-700 dark:text-yellow-400', bg: 'bg-yellow-100 dark:bg-yellow-900/30' },
             info: { icon: <DatabaseIcon className="w-5 h-5 text-blue-500" />, text: 'text-blue-700 dark:text-blue-400', bg: 'bg-blue-100 dark:bg-blue-900/50' },
         };
         const selected = styles[statusItem.status];
@@ -536,6 +634,64 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
         </div>
     );
     
+    const renderAdminPanel = () => (
+        <div className="space-y-6">
+            <div>
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Tambah Pengguna Baru</h3>
+                <form onSubmit={handleAddNewUser} className="p-4 mt-2 border dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700/50 space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="new-user-id">ID Pengguna</label>
+                             <input id="new-user-id" type="text" value={newUserId} onChange={e => setNewUserId(e.target.value)} className="mt-1 block w-full input-style" required />
+                        </div>
+                        <div>
+                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="new-user-password">Kata Laluan</label>
+                             <input id="new-user-password" type="password" value={newUserPassword} onChange={e => setNewUserPassword(e.target.value)} className="mt-1 block w-full input-style" required />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="new-user-role">Peranan</label>
+                            <select id="new-user-role" value={newUserRole} onChange={e => setNewUserRole(e.target.value as UserRole)} className="mt-1 block w-full input-style">
+                                <option value="teacher">Guru</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" className="px-4 py-2 bg-gradient-to-r from-[#6B8A9E] to-[#5a7588] text-white font-semibold rounded-lg shadow-md hover:opacity-90">Tambah Pengguna</button>
+                </form>
+            </div>
+            <div>
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Senarai Pengguna Sedia Ada</h3>
+                <div className="mt-2 border dark:border-gray-700 rounded-lg overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                             <thead className="bg-gray-50 dark:bg-gray-700/50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ID Pengguna</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Peranan</th>
+                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tindakan</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                {isLoadingUsers ? (
+                                    <tr><td colSpan={3} className="text-center p-4">Memuatkan pengguna...</td></tr>
+                                ) : adminUsers.map(user => (
+                                    <tr key={user.docId}>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{user.id}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300 capitalize">{user.role}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                            <button onClick={() => handleAdminAction('view', user)} className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-200">Lihat Kata Laluan</button>
+                                            <button onClick={() => handleAdminAction('delete', user)} disabled={user.id === session?.userId} className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-200 disabled:opacity-50 disabled:cursor-not-allowed">Padam</button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+
     return (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 sm:p-8 border border-gray-200 dark:border-gray-700">
             {notification && (
@@ -573,15 +729,17 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
                 <button onClick={() => setActiveTab('media')} className={`flex-shrink-0 relative px-4 py-2 text-sm font-semibold transition-colors ${activeTab === 'media' ? 'border-b-2 border-[#6B8A9E] text-[#6B8A9E] dark:text-[#a6c8de]' : 'text-gray-500 dark:text-gray-400'}`}>
                     Arkib Media
                 </button>
-                {userRole === 'admin' && <button onClick={() => setActiveTab('settings')} className={`flex-shrink-0 px-4 py-2 text-sm font-semibold transition-colors ${activeTab === 'settings' ? 'border-b-2 border-[#6B8A9E] text-[#6B8A9E] dark:text-[#a6c8de]' : 'text-gray-500 dark:text-gray-400'}`}>Tetapan</button>}
-                {userRole === 'admin' && <button onClick={() => setActiveTab('debug')} className={`flex-shrink-0 px-4 py-2 text-sm font-semibold transition-colors ${activeTab === 'debug' ? 'border-b-2 border-[#6B8A9E] text-[#6B8A9E] dark:text-[#a6c8de]' : 'text-gray-500 dark:text-gray-400'}`}>Penyahpepijat</button>}
+                {(userRole === 'admin' || userRole === 'superadmin') && <button onClick={() => setActiveTab('settings')} className={`flex-shrink-0 px-4 py-2 text-sm font-semibold transition-colors ${activeTab === 'settings' ? 'border-b-2 border-[#6B8A9E] text-[#6B8A9E] dark:text-[#a6c8de]' : 'text-gray-500 dark:text-gray-400'}`}>Tetapan</button>}
+                {userRole === 'superadmin' && <button onClick={() => setActiveTab('admin')} className={`flex items-center space-x-2 flex-shrink-0 px-4 py-2 text-sm font-semibold transition-colors ${activeTab === 'admin' ? 'border-b-2 border-[#6B8A9E] text-[#6B8A9E] dark:text-[#a6c8de]' : 'text-gray-500 dark:text-gray-400'}`}><UserGroupIcon className="w-4 h-4" /><span>Urus Pentadbir</span></button>}
+                {(userRole === 'admin' || userRole === 'superadmin') && <button onClick={() => setActiveTab('debug')} className={`flex-shrink-0 px-4 py-2 text-sm font-semibold transition-colors ${activeTab === 'debug' ? 'border-b-2 border-[#6B8A9E] text-[#6B8A9E] dark:text-[#a6c8de]' : 'text-gray-500 dark:text-gray-400'}`}>Penyahpepijat</button>}
             </div>
 
             <div>
                 {activeTab === 'reports' && renderReportList(textReports)}
                 {activeTab === 'media' && renderReportList(mediaReports)}
-                {activeTab === 'settings' && userRole === 'admin' && renderSettings()}
-                {activeTab === 'debug' && userRole === 'admin' && <DebugPanel />}
+                {activeTab === 'settings' && (userRole === 'admin' || userRole === 'superadmin') && renderSettings()}
+                {activeTab === 'admin' && userRole === 'superadmin' && renderAdminPanel()}
+                {activeTab === 'debug' && (userRole === 'admin' || userRole === 'superadmin') && <DebugPanel />}
             </div>
 
             {showDownloadPinModal && (
@@ -611,8 +769,28 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
                     </div>
                 </div>
             )}
+             {showAdminPinModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm">
+                        <h3 className="text-lg font-bold text-[#6B8A9E] dark:text-gray-200">Pengesahan Diperlukan</h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Sila masukkan PIN Pentadbir untuk meneruskan tindakan ini.</p>
+                        <form onSubmit={handleAdminPinSubmit} className="space-y-4 mt-4">
+                            <input
+                                type="password"
+                                value={adminActionPin}
+                                onChange={(e) => setAdminActionPin(e.target.value)}
+                                className="w-full p-2 text-center tracking-widest font-mono bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D78F70]"
+                                required autoFocus maxLength={12}
+                            />
+                            {adminActionPinError && <p className="text-sm text-red-500 text-center">{adminActionPinError}</p>}
+                            <div className="flex justify-end space-x-3 pt-2">
+                                <button type="button" onClick={closeAdminPinModal} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded-lg font-semibold">Batal</button>
+                                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold">Sahkan</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
-
-export default Dashboard;

@@ -11,6 +11,9 @@ export const defaultSettings: WebsiteSettings = {
     isMaintenanceLockEnabled: false,
     maintenancePin: '',
     fallbackOpenAIKey: '',
+    adminDownloadPin: '21412141',
+    adminActionPin: '090713040013',
+    masterResetPin: '01130651814',
 };
 
 /**

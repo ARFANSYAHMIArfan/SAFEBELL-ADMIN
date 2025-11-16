@@ -108,9 +108,9 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLoginSuccess = async (role: UserRole) => {
-    if (role === 'admin' || role === 'teacher') {
-        const newSession = await createSession(role);
+  const handleLoginSuccess = async (role: UserRole, userId: string) => {
+    if (role === 'admin' || role === 'teacher' || role === 'superadmin') {
+        const newSession = await createSession(role, userId);
         localStorage.setItem('sessionId', newSession.id);
         setSession(newSession);
         setUserRole(role);
@@ -174,6 +174,7 @@ const App: React.FC = () => {
           {currentPage === 'home' && <ReportForm settings={settings} />}
           {currentPage === 'dashboard' && userRole !== 'none' && (
              <Dashboard 
+                session={session}
                 userRole={userRole} 
                 onLogout={handleLogout} 
                 onNavigateHome={navigateToHome} 

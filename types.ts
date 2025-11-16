@@ -1,6 +1,6 @@
 export type ReportType = 'text' | 'audio' | 'video';
 
-export type UserRole = 'none' | 'admin' | 'teacher';
+export type UserRole = 'none' | 'admin' | 'teacher' | 'superadmin';
 
 export interface Report {
     id: string;
@@ -17,13 +17,25 @@ export interface WebsiteSettings {
     isMaintenanceLockEnabled: boolean;
     maintenancePin: string;
     fallbackOpenAIKey?: string;
+    adminDownloadPin?: string;
+    adminActionPin?: string;
+    masterResetPin?: string;
 }
 
 export interface Session {
     id: string;
     role: UserRole;
+    userId: string; // The login ID of the user
     createdAt: string;
 }
+
+export interface UserCredentials {
+    docId: string;
+    id: string; // login id
+    role: UserRole;
+    password?: string;
+}
+
 
 export interface LogEntry {
     timestamp: string;

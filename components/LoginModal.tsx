@@ -1,28 +1,38 @@
 import React, { useState } from 'react';
-import { UI_TEXT, CREDENTIALS } from '../constants';
+import { UI_TEXT } from '../constants';
 import { UserRole } from '../types';
 import { XCircleIcon } from './icons';
+import { validateLogin } from '../services/userService';
 
 interface LoginModalProps {
   onClose: () => void;
-  onLoginSuccess: (role: UserRole) => void;
+  onLoginSuccess: (role: UserRole, userId: string) => void;
 }
 
 const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsLoggingIn(true);
 
-    if (userId === CREDENTIALS.ADMIN.ID && password === CREDENTIALS.ADMIN.PASSWORD) {
-      onLoginSuccess('admin');
-    } else if (userId === CREDENTIALS.TEACHER.ID && password === CREDENTIALS.TEACHER.PASSWORD) {
-      onLoginSuccess('teacher');
-    } else {
-      setError(UI_TEXT.LOGIN_ERROR);
+    try {
+        const user = await validateLogin(userId, password);
+
+        if (user) {
+            onLoginSuccess(user.role, user.id);
+        } else {
+            setError(UI_TEXT.LOGIN_ERROR);
+        }
+    } catch (err) {
+        console.error("Login error:", err);
+        setError("Ralat berlaku semasa log masuk. Sila cuba lagi.");
+    } finally {
+        setIsLoggingIn(false);
     }
   };
 
@@ -71,9 +81,10 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
           <div className="pt-2">
             <button
               type="submit"
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-[#D78F70] to-[#E8A87C] hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#D78F70]"
+              disabled={isLoggingIn}
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-[#D78F70] to-[#E8A87C] hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#D78F70] disabled:opacity-50"
             >
-              {UI_TEXT.LOGIN}
+              {isLoggingIn ? 'Mengesahkan...' : UI_TEXT.LOGIN}
             </button>
           </div>
         </form>
