@@ -4,20 +4,26 @@ import ReportForm from './components/ReportForm';
 import LoginModal from './components/LoginModal';
 import Dashboard from './components/Dashboard';
 import MaintenanceLock from './components/MaintenanceLock';
+import KioskPinModal from './components/KioskPinModal';
+import KioskLockoutScreen from './components/KioskLockoutScreen';
 import { UserRole, WebsiteSettings, Session } from './types';
 import { isUnlockValid, clearUnlockTimestamp, getDarkModePreference, saveDarkModePreference } from './utils/storage';
 import { fetchGlobalSettings, defaultSettings } from './services/settingsService';
 import { createSession, validateSession, deleteSession } from './services/sessionService';
 import { onSnapshot, doc } from 'firebase/firestore';
 import { db } from './services/firebaseConfig';
+import { lockUser, unlockUser } from './services/userService';
+import { sendSecurityAlert } from './services/telegramService';
 
 const App: React.FC = () => {
   const [userRole, setUserRole] = useState<UserRole>('none');
   const [session, setSession] = useState<Session | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showKioskPinModal, setShowKioskPinModal] = useState(false);
   const [currentPage, setCurrentPage] = useState<'home' | 'dashboard'>('home');
   const [settings, setSettings] = useState<WebsiteSettings>({ isFormDisabled: false, isMaintenanceLockEnabled: false, maintenancePin: '' });
   const [isLocked, setIsLocked] = useState(false);
+  const [isKioskLockedOut, setIsKioskLockedOut] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(getDarkModePreference());
   const [isLoading, setIsLoading] = useState(true);
 
@@ -40,7 +46,10 @@ const App: React.FC = () => {
             if (validSession) {
                 setSession(validSession);
                 setUserRole(validSession.role);
-                setCurrentPage('dashboard');
+                // Don't auto-navigate kiosk to dashboard on refresh
+                if (validSession.role !== 'kiosk_enabled_device') {
+                    setCurrentPage('dashboard');
+                }
             } else {
                 localStorage.removeItem('sessionId');
             }
@@ -61,30 +70,24 @@ const App: React.FC = () => {
         const shouldBeLocked = globalSettings.isMaintenanceLockEnabled && !unlocked;
 
         if (shouldBeLocked) {
-            // If a lock is triggered, we should also clear any logged-in state
-            // to prevent being logged in behind the lock screen.
             if (session) {
-                // No need to hit DB, just clear client-side state
                 localStorage.removeItem('sessionId');
                 setSession(null);
                 setUserRole('none');
                 setCurrentPage('home');
             }
         } else if (!globalSettings.isMaintenanceLockEnabled) {
-             // If lock is disabled globally, ensure any unlock timestamp is cleared.
             clearUnlockTimestamp();
         }
         
-        setIsLocked(shouldBeLocked); // This is the single source of truth for the lock screen.
+        setIsLocked(shouldBeLocked);
 
-        // Make sure loading screen is removed
         if (isLoading) {
             setIsLoading(false);
         }
 
     }, (error) => {
         console.error("Firebase settings listener error:", error);
-        // Fallback to a single fetch
         fetchGlobalSettings().then(fbSettings => {
             setSettings(fbSettings);
             const unlocked = isUnlockValid();
@@ -94,7 +97,7 @@ const App: React.FC = () => {
         });
     });
 
-    return () => unsubscribe(); // Cleanup on unmount
+    return () => unsubscribe();
   }, [session, isLoading]);
   
   const handleSettingsChange = (newSettings: WebsiteSettings) => {
@@ -108,13 +111,16 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLoginSuccess = async (role: UserRole, userId: string) => {
-    if (role === 'admin' || role === 'teacher' || role === 'superadmin') {
-        const newSession = await createSession(role, userId);
-        localStorage.setItem('sessionId', newSession.id);
-        setSession(newSession);
-        setUserRole(role);
-        setShowLoginModal(false);
+  const handleLoginSuccess = async (role: UserRole, userId: string, docId: string) => {
+    const newSession = await createSession(role, userId, docId);
+    localStorage.setItem('sessionId', newSession.id);
+    setSession(newSession);
+    setUserRole(role);
+    setShowLoginModal(false);
+
+    if (role === 'kiosk_enabled_device') {
+        setCurrentPage('home');
+    } else if (role === 'admin' || role === 'teacher' || role === 'superadmin') {
         setCurrentPage('dashboard');
     }
   };
@@ -130,12 +136,51 @@ const App: React.FC = () => {
   };
   
   const navigateToDashboard = () => {
-    if (userRole !== 'none') {
-      setCurrentPage('dashboard');
+    if (userRole === 'kiosk_enabled_device') {
+        setShowKioskPinModal(true);
+    } else if (userRole !== 'none') {
+        setCurrentPage('dashboard');
     }
   };
 
   const navigateToHome = () => {
+    setCurrentPage('home');
+  };
+
+  const handleKioskPinSuccess = () => {
+    setShowKioskPinModal(false);
+    setCurrentPage('dashboard');
+  };
+
+  const handleKioskLockout = async () => {
+    if (!session) return;
+    setShowKioskPinModal(false); // Close the PIN modal
+    await lockUser(session.docId);
+
+    // Fetch IP and send alert
+    let ipAddress = 'Tidak dapat dikesan';
+    try {
+        const response = await fetch('https://api.ipify.org?format=json');
+        const data = await response.json();
+        ipAddress = data.ip;
+    } catch (e) {
+        console.error("Could not fetch IP address:", e);
+    }
+
+    await sendSecurityAlert({
+        userId: session.userId,
+        role: session.role,
+        ipAddress: ipAddress
+    });
+
+    setIsKioskLockedOut(true);
+  };
+  
+  const handleKioskUnlock = async () => {
+    if (!session) return;
+    await unlockUser(session.docId);
+    setIsKioskLockedOut(false);
+    // Optionally, navigate home or log out after unlock for security
     setCurrentPage('home');
   };
   
@@ -145,6 +190,10 @@ const App: React.FC = () => {
             <p>Memuatkan aplikasi...</p>
         </div>
     );
+  }
+
+  if (isKioskLockedOut) {
+    return <KioskLockoutScreen settings={settings} onUnlock={handleKioskUnlock} />;
   }
 
   if (isLocked) {
@@ -166,6 +215,15 @@ const App: React.FC = () => {
         <LoginModal 
           onClose={() => setShowLoginModal(false)}
           onLoginSuccess={handleLoginSuccess}
+        />
+      )}
+
+      {showKioskPinModal && (
+        <KioskPinModal
+            onClose={() => setShowKioskPinModal(false)}
+            onSuccess={handleKioskPinSuccess}
+            onLockout={handleKioskLockout}
+            settings={settings}
         />
       )}
 

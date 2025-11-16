@@ -1,4 +1,3 @@
-
 import { TELEGRAM_CONFIG } from '../constants';
 
 const { API_KEY, CHAT_ID } = TELEGRAM_CONFIG;
@@ -56,4 +55,24 @@ export const sendVideoReport = async (videoBlob: Blob, caption: string) => {
         body: formData,
     });
     return handleResponse(response);
+};
+
+export const sendSecurityAlert = async (details: { userId: string; role: string; ipAddress: string; }) => {
+    const text = `
+🚨 *PERINGATAN KESELAMATAN* 🚨
+
+Percubaan log masuk gagal berulang kali dikesan pada peranti Kiosk.
+*Akaun telah dikunci untuk sementara.*
+
+*ID Akaun:* \`${details.userId}\`
+*Peranan:* \`${details.role}\`
+*Alamat IP:* \`${details.ipAddress}\`
+    `.trim();
+
+    try {
+        await sendTextReport(text);
+    } catch (error) {
+        console.error("Failed to send security alert to Telegram:", error);
+        // Do not throw, as this is a non-critical notification
+    }
 };

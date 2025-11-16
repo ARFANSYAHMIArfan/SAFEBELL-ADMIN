@@ -6,7 +6,7 @@ import { validateLogin } from '../services/userService';
 
 interface LoginModalProps {
   onClose: () => void;
-  onLoginSuccess: (role: UserRole, userId: string) => void;
+  onLoginSuccess: (role: UserRole, userId: string, docId: string) => void;
 }
 
 const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
@@ -24,9 +24,15 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
         const user = await validateLogin(userId, password);
 
         if (user) {
-            onLoginSuccess(user.role, user.id);
+            onLoginSuccess(user.role, user.id, user.docId);
         } else {
-            setError(UI_TEXT.LOGIN_ERROR);
+            // Check if account might be locked
+            const potentialUser = await validateLogin(userId, password + 'invalid');
+            if (potentialUser && potentialUser.isLocked) {
+                setError("Akaun ini dikunci kerana percubaan log masuk yang gagal. Sila hubungi pentadbir.");
+            } else {
+                 setError(UI_TEXT.LOGIN_ERROR);
+            }
         }
     } catch (err) {
         console.error("Login error:", err);

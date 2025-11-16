@@ -1,6 +1,6 @@
 export type ReportType = 'text' | 'audio' | 'video';
 
-export type UserRole = 'none' | 'admin' | 'teacher' | 'superadmin';
+export type UserRole = 'none' | 'admin' | 'teacher' | 'superadmin' | 'kiosk_enabled_device';
 
 export interface Report {
     id: string;
@@ -26,6 +26,7 @@ export interface Session {
     id: string;
     role: UserRole;
     userId: string; // The login ID of the user
+    docId: string; // The Firestore document ID for the user
     createdAt: string;
 }
 
@@ -34,6 +35,7 @@ export interface UserCredentials {
     id: string; // login id
     role: UserRole;
     password?: string;
+    isLocked?: boolean;
 }
 
 

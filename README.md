@@ -1,53 +1,20 @@
 <div align="center">
-<img width="3780" height="1890" alt="PWA_GITHUB" src="https://github.com/user-attachments/assets/b5471a3f-fcbc-43e4-b5b7-4089ccae7bc0" />
-
+<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
 </div>
 
-# S.A.F.E - SMART REPORTING SYSTEM
-### [SMART ALERT FOR FAST EMERGENCY] (PWA VERSION)
+# Run and deploy your AI Studio app
 
-**Proudly presented by SM Sains Muzaffar Syah**
+This contains everything you need to run your app locally.
 
-> "Laporkan Kejadian Kecemasan Di Sini Secara Anonim Dan Selamat."
->
-> *"Report Emergency Incidents Here Anonymously And Safely."*
+View your app in AI Studio: https://ai.studio/apps/drive/1-7zGZgmiJn0Lcrg6P7HMgmLOh_qNbTxY
 
----
+## Run Locally
 
-### 📖 About The Project
+**Prerequisites:**  Node.js
 
-As we continue from the **KitaBUDDY:#JOMCEGAHBULI** and **S.A.F.E Kiosk Project**, we are proud to introduce the Progressive Web App (PWA) version of S.A.F.E!
 
-S.A.F.E is an advanced reporting platform designed to foster a safer school environment. It provides a secure, confidential, and easily accessible channel for students and staff to report any incident, bullying, or emergency without fear of reprisal.
-
-Being a **PWA**, S.A.F.E is instantly accessible from any web browser on a smartphone or computer—no app store download required.
-
-### 🚀 Key Features
-
-The system is split into two main components: the public reporting interface for students and a comprehensive management dashboard for administrators.
-
-#### For Reporters (Students)
-* **🛡️ Anonymous Reporting:** Submit reports with the full confidence that your identity is protected.
-* ** multimedia Submissions:** Users can describe incidents in the way that suits them best, with support for **Text**, **Audio**, and **Video** reports.
-* **📱 Instant PWA Access:** The platform can be accessed instantly from any device with a web browser, ensuring the barrier to reporting is as low as possible.
-
-#### For Admins (Teachers & Staff)
-* **🔒 Secure Admin Login:** A dedicated portal for authorized personnel to manage the system.
-* **📊 Centralized Dashboard:** A "Papan Pemuka" (Dashboard) to view, manage, and archive all incoming reports. This includes separate tabs for "Urus Laporan Teks" (Manage Text Reports), "Arkib Media" (Media Archive), and "Tetapan" (Settings).
-* **🔧 Full System Control:**
-    * **Disable Reporting Form:** Ability to temporarily "Lumpuhkan Borang Laporan" (Disable Report Form) for all users.
-    * **Maintenance Mode:** Activate a "Kunci Penyelenggaraan" (Maintenance Lock) secured by an 8-Digit PIN.
-* **📦 Data Portability:**
-    * **Export Data:** Securely download all report records as a JSON file.
-    * **Import Data:** Upload a JSON file to restore or transfer report data.
-* **🩺 System Status & Debugging:**
-    * **Live API Monitoring:** Real-time status checks for all critical API connections (Firebase, Telegram, Cerebras, OpenAI).
-    * **Permission Checks:** Verifies that browser permissions for Camera, Microphone, and Location are correctly configured.
-
-### 🙏 Acknowledgements
-
-This project is a continuation of the **KitaBUDDY:#JOMCEGAHBULI** initiative.
-
----
-
-© 2025. KitaBUDDY:#JOMCEGAHBULI. Hak Cipta Terpelihara. Dikuasakan Oleh Teknologi AI Anonim.
+1. Install dependencies:
+   `npm install`
+2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+3. Run the app:
+   `npm run dev`

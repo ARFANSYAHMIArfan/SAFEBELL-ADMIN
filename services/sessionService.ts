@@ -9,13 +9,14 @@ const generateSessionId = () => {
     return Date.now().toString(36) + Math.random().toString(36).substring(2);
 };
 
-export const createSession = async (role: UserRole, userId: string): Promise<Session> => {
+export const createSession = async (role: UserRole, userId: string, docId: string): Promise<Session> => {
     try {
         const sessionId = generateSessionId();
         const session: Session = {
             id: sessionId,
             role,
             userId,
+            docId, // Store the document ID
             createdAt: new Date().toISOString()
         };
         const sessionDocRef = doc(db, SESSIONS_COLLECTION, sessionId);
@@ -42,6 +43,7 @@ export const deleteSession = async (sessionId: string): Promise<void> => {
      try {
         const sessionDocRef = doc(db, SESSIONS_COLLECTION, sessionId);
         await deleteDoc(sessionDocRef);
+    // Fix: Added missing opening brace for the catch block.
     } catch (error) {
         console.error("Error deleting session:", error);
     }

@@ -30,8 +30,18 @@ interface DashboardProps {
   onSettingsChange: (settings: WebsiteSettings) => void;
 }
 
+const getRoleDisplayName = (role: UserRole) => {
+    switch(role) {
+        case 'superadmin': return 'Super Admin';
+        case 'admin': return 'Admin';
+        case 'teacher': return 'Guru';
+        case 'kiosk_enabled_device': return 'Peranti Kiosk';
+        default: return role;
+    }
+}
+
 export default function Dashboard({ session, userRole, onLogout, onNavigateHome, onSettingsChange }: DashboardProps): React.JSX.Element {
-    const roleText = userRole === 'superadmin' ? 'Super Admin' : userRole === 'admin' ? 'Admin' : 'Guru';
+    const roleText = getRoleDisplayName(userRole);
     
     const [reports, setReports] = useState<Report[]>([]);
     const [isLoadingReports, setIsLoadingReports] = useState(true);
@@ -751,6 +761,7 @@ export default function Dashboard({ session, userRole, onLogout, onNavigateHome,
                                 <select id="new-user-role" value={newUserRole} onChange={e => setNewUserRole(e.target.value as UserRole)} className="mt-1 block w-full input-style">
                                     <option value="teacher">Guru</option>
                                     {userRole === 'superadmin' && <option value="admin">Admin</option>}
+                                    {userRole === 'superadmin' && <option value="kiosk_enabled_device">Peranti Kiosk</option>}
                                 </select>
                             </div>
                         </div>
@@ -775,7 +786,7 @@ export default function Dashboard({ session, userRole, onLogout, onNavigateHome,
                                     ) : filteredAdminUsers.map(user => (
                                         <tr key={user.docId}>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{user.id}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300 capitalize">{user.role}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{getRoleDisplayName(user.role)}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                                                 <button onClick={() => handleAdminAction('view', user)} className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-200">Lihat Kata Laluan</button>
                                                 <button onClick={() => handleAdminAction('delete', user)} disabled={user.id === session?.userId} className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-200 disabled:opacity-50 disabled:cursor-not-allowed">Padam</button>

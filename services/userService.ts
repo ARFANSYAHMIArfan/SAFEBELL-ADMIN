@@ -1,6 +1,6 @@
 import { UserCredentials, UserRole } from '../types';
 import { db } from './firebaseConfig';
-import { collection, getDocs, doc, setDoc, deleteDoc, query, where, limit, getDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, deleteDoc, query, where, limit, getDoc, updateDoc } from 'firebase/firestore';
 
 const USERS_COLLECTION = 'users';
 
@@ -22,7 +22,12 @@ export const validateLogin = async (id: string, password: string): Promise<UserC
         }
         
         const userDoc = querySnapshot.docs[0];
-        const userData = userDoc.data();
+        const userData = userDoc.data() as UserCredentials;
+
+        if (userData.isLocked) {
+            console.log(`Login failed: User account "${id}" is locked.`);
+            return null; // Account is locked
+        }
 
         if (userData.password === password) {
             return {
@@ -103,7 +108,7 @@ export const addUser = async (id: string, password: string, role: UserRole): Pro
         }
         
         const userDocRef = doc(collection(db, USERS_COLLECTION));
-        await setDoc(userDocRef, { id, password, role });
+        await setDoc(userDocRef, { id, password, role, isLocked: false });
     } catch (error) {
         console.error("Error adding user:", error);
         throw error; // Re-throw the original error to be caught by the UI
@@ -121,5 +126,31 @@ export const deleteUser = async (docId: string): Promise<void> => {
     } catch (error) {
         console.error("Error deleting user:", error);
         throw new Error('Gagal memadam pengguna.');
+    }
+};
+
+/**
+ * Sets the 'isLocked' flag to true for a user account.
+ * @param docId The Firestore document ID of the user.
+ */
+export const lockUser = async (docId: string): Promise<void> => {
+    try {
+        const userDocRef = doc(db, USERS_COLLECTION, docId);
+        await updateDoc(userDocRef, { isLocked: true });
+    } catch (error) {
+        console.error(`Error locking user ${docId}:`, error);
+    }
+};
+
+/**
+ * Sets the 'isLocked' flag to false for a user account.
+ * @param docId The Firestore document ID of the user.
+ */
+export const unlockUser = async (docId: string): Promise<void> => {
+    try {
+        const userDocRef = doc(db, USERS_COLLECTION, docId);
+        await updateDoc(userDocRef, { isLocked: false });
+    } catch (error) {
+        console.error(`Error unlocking user ${docId}:`, error);
     }
 };
