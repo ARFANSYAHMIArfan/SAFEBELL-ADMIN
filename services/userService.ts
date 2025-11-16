@@ -1,6 +1,7 @@
 import { UserCredentials, UserRole } from '../types';
 import { db } from './firebaseConfig';
-import { collection, getDocs, doc, setDoc, deleteDoc, query, where, limit, getDoc, updateDoc } from 'firebase/firestore';
+// FIX: Updated firebase/firestore import to use the scoped package @firebase/firestore
+import { collection, getDocs, doc, setDoc, deleteDoc, query, where, limit, getDoc, updateDoc } from '@firebase/firestore';
 
 const USERS_COLLECTION = 'users';
 
@@ -46,6 +47,38 @@ export const validateLogin = async (id: string, password: string): Promise<UserC
         return null;
     }
 };
+
+/**
+ * Fetches a user by their login ID to check their status.
+ * @param id The user's login ID.
+ * @returns A promise that resolves to the user object or null if not found.
+ */
+export const getUserById = async (id: string): Promise<UserCredentials | null> => {
+    try {
+        const usersCollection = collection(db, USERS_COLLECTION);
+        const q = query(usersCollection, where("id", "==", id), limit(1));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+            return null;
+        }
+        
+        const userDoc = querySnapshot.docs[0];
+        const userData = userDoc.data() as UserCredentials;
+
+        // Return only necessary, non-sensitive data
+        return {
+            docId: userDoc.id,
+            id: userData.id,
+            role: userData.role,
+            isLocked: userData.isLocked,
+        };
+    } catch (error) {
+        console.error("Error fetching user by ID:", error);
+        return null; // Return null on error to avoid breaking login flow
+    }
+};
+
 
 /**
  * Fetches all users from Firestore, excluding their passwords for security.

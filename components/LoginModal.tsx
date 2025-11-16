@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { UI_TEXT } from '../constants';
 import { UserRole } from '../types';
 import { XCircleIcon } from './icons';
-import { validateLogin } from '../services/userService';
+import { validateLogin, getUserById } from '../services/userService';
 
 interface LoginModalProps {
   onClose: () => void;
@@ -26,8 +26,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
         if (user) {
             onLoginSuccess(user.role, user.id, user.docId);
         } else {
-            // Check if account might be locked
-            const potentialUser = await validateLogin(userId, password + 'invalid');
+            // Check if the login failed because the account is locked.
+            const potentialUser = await getUserById(userId);
             if (potentialUser && potentialUser.isLocked) {
                 setError("Akaun ini dikunci kerana percubaan log masuk yang gagal. Sila hubungi pentadbir.");
             } else {

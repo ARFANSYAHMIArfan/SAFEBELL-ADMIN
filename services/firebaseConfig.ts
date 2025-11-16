@@ -1,6 +1,9 @@
-import { initializeApp, FirebaseApp } from 'firebase/app';
-import { getFirestore, Firestore } from 'firebase/firestore';
-import { getStorage, FirebaseStorage } from 'firebase/storage';
+// FIX: Updated firebase/app import to use the scoped package @firebase/app
+import { initializeApp, FirebaseApp } from '@firebase/app';
+// FIX: Updated firebase/firestore import to use the scoped package @firebase/firestore
+import { getFirestore, Firestore } from '@firebase/firestore';
+// FIX: Updated firebase/storage import to use the scoped package @firebase/storage
+import { getStorage, FirebaseStorage } from '@firebase/storage';
 
 // Your web app's Firebase configuration from your Firebase project settings
 const firebaseConfig = {

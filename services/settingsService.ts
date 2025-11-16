@@ -1,6 +1,7 @@
 import { WebsiteSettings } from '../types';
 import { db } from './firebaseConfig';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+// FIX: Updated firebase/firestore import to use the scoped package @firebase/firestore
+import { doc, getDoc, setDoc } from '@firebase/firestore';
 
 const SETTINGS_COLLECTION = 'config';
 const SETTINGS_DOC_ID = 'global-settings';

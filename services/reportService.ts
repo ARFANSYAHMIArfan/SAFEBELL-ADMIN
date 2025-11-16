@@ -1,7 +1,9 @@
 import { Report } from '../types';
 import { db, storage } from './firebaseConfig';
-import { collection, getDocs, doc, setDoc, deleteDoc, query, orderBy, writeBatch } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+// FIX: Updated firebase/firestore import to use the scoped package @firebase/firestore
+import { collection, getDocs, doc, setDoc, deleteDoc, query, orderBy, writeBatch } from '@firebase/firestore';
+// FIX: Updated firebase/storage import to use the scoped package @firebase/storage
+import { ref, uploadBytes, getDownloadURL } from '@firebase/storage';
 
 const REPORTS_COLLECTION = 'reports';
 

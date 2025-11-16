@@ -14,7 +14,8 @@ import {
     checkTelegramApi, checkCerebrasConfig, checkOpenAIConfig, 
     getReportCount, checkPermissions, SystemStatus, checkFirebaseStatus
 } from '../utils/statusCheck';
-import { onSnapshot, collection, query, orderBy } from 'firebase/firestore';
+// FIX: Updated firebase/firestore import to use the scoped package @firebase/firestore
+import { onSnapshot, collection, query, orderBy } from '@firebase/firestore';
 import { db } from '../services/firebaseConfig';
 import DebugPanel from './DebugPanel';
 import { getUsers, addUser, deleteUser as deleteUserService, getUserPassword, validateLogin } from '../services/userService';

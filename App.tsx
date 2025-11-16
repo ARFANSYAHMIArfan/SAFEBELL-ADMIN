@@ -10,35 +10,11 @@ import { UserRole, WebsiteSettings, Session } from './types';
 import { isUnlockValid, clearUnlockTimestamp, getDarkModePreference, saveDarkModePreference } from './utils/storage';
 import { fetchGlobalSettings, defaultSettings } from './services/settingsService';
 import { createSession, validateSession, deleteSession } from './services/sessionService';
-import { onSnapshot, doc } from 'firebase/firestore';
+// FIX: Updated firebase/firestore import to use the scoped package @firebase/firestore
+import { onSnapshot, doc } from '@firebase/firestore';
 import { db } from './services/firebaseConfig';
 import { lockUser, unlockUser } from './services/userService';
 import { sendSecurityAlert } from './services/telegramService';
-
-const enterFullscreen = () => {
-  const element = document.documentElement;
-  if (element.requestFullscreen) {
-    element.requestFullscreen().catch(err => console.warn(`Fullscreen request failed: ${err.message}`));
-  } else if ((element as any).mozRequestFullScreen) { /* Firefox */
-    (element as any).mozRequestFullScreen();
-  } else if ((element as any).webkitRequestFullscreen) { /* Chrome, Safari & Opera */
-    (element as any).webkitRequestFullscreen();
-  } else if ((element as any).msRequestFullscreen) { /* IE/Edge */
-    (element as any).msRequestFullscreen();
-  }
-};
-
-const exitFullscreen = () => {
-  if (document.exitFullscreen) {
-    document.exitFullscreen().catch(err => console.warn(`Exit fullscreen failed: ${err.message}`));
-  } else if ((document as any).mozCancelFullScreen) { /* Firefox */
-    (document as any).mozCancelFullScreen();
-  } else if ((document as any).webkitExitFullscreen) { /* Chrome, Safari and Opera */
-    (document as any).webkitExitFullscreen();
-  } else if ((document as any).msExitFullscreen) { /* IE/Edge */
-    (document as any).msExitFullscreen();
-  }
-};
 
 const App: React.FC = () => {
   const [userRole, setUserRole] = useState<UserRole>('none');
@@ -180,7 +156,6 @@ const App: React.FC = () => {
   const handleKioskLockout = async () => {
     if (!session) return;
     
-    enterFullscreen();
     setShowKioskPinModal(false); // Close the PIN modal
     await lockUser(session.docId);
 
@@ -206,7 +181,6 @@ const App: React.FC = () => {
   const handleKioskUnlock = async () => {
     if (!session) return;
     
-    exitFullscreen();
     await unlockUser(session.docId);
     setIsKioskLockedOut(false);
     // Optionally, navigate home or log out after unlock for security

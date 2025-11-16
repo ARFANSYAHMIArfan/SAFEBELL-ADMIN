@@ -7,11 +7,45 @@ interface KioskLockoutScreenProps {
   settings: WebsiteSettings;
 }
 
+const enterFullscreen = () => {
+  const element = document.documentElement;
+  if (element.requestFullscreen) {
+    element.requestFullscreen().catch(err => console.warn(`Fullscreen request failed: ${err.message}`));
+  } else if ((element as any).mozRequestFullScreen) { /* Firefox */
+    (element as any).mozRequestFullScreen();
+  } else if ((element as any).webkitRequestFullscreen) { /* Chrome, Safari & Opera */
+    (element as any).webkitRequestFullscreen();
+  } else if ((element as any).msRequestFullscreen) { /* IE/Edge */
+    (element as any).msRequestFullscreen();
+  }
+};
+
+const exitFullscreen = () => {
+  if (document.exitFullscreen) {
+    document.exitFullscreen().catch(err => console.warn(`Exit fullscreen failed: ${err.message}`));
+  } else if ((document as any).mozCancelFullScreen) { /* Firefox */
+    (document as any).mozCancelFullScreen();
+  } else if ((document as any).webkitExitFullscreen) { /* Chrome, Safari and Opera */
+    (document as any).webkitExitFullscreen();
+  } else if ((document as any).msExitFullscreen) { /* IE/Edge */
+    (document as any).msExitFullscreen();
+  }
+};
+
+
 const KioskLockoutScreen: React.FC<KioskLockoutScreenProps> = ({ onUnlock, settings }) => {
     const [pin, setPin] = useState('');
     const [error, setError] = useState('');
     const [isVerifying, setIsVerifying] = useState(false);
     const [countdown, setCountdown] = useState(300); // 5 minutes in seconds
+
+    useEffect(() => {
+        enterFullscreen();
+        return () => {
+            exitFullscreen();
+        };
+    }, []);
+
 
     useEffect(() => {
         if (countdown > 0) {
@@ -25,12 +59,15 @@ const KioskLockoutScreen: React.FC<KioskLockoutScreenProps> = ({ onUnlock, setti
         setIsVerifying(true);
         setError('');
         
-        if (pin === settings.masterResetPin) {
-            onUnlock();
-        } else {
-            setError('PIN Induk Tetapan Semula tidak sah. Sila cuba lagi.');
-        }
-        setIsVerifying(false);
+        // Use a small delay to allow UI to update before expensive check
+        setTimeout(() => {
+            if (pin === settings.masterResetPin) {
+                onUnlock();
+            } else {
+                setError('PIN Induk Tetapan Semula tidak sah. Sila cuba lagi.');
+                setIsVerifying(false);
+            }
+        }, 100);
     };
 
     const formatTime = (seconds: number) => {
@@ -72,7 +109,7 @@ const KioskLockoutScreen: React.FC<KioskLockoutScreenProps> = ({ onUnlock, setti
                     <button
                         type="submit"
                         className="w-full px-6 py-3 bg-yellow-500 text-gray-900 font-bold rounded-lg shadow-lg hover:bg-yellow-400 transform hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50"
-                        disabled={isVerifying || countdown === 0}
+                        disabled={isVerifying}
                     >
                         {isVerifying ? 'Mengesahkan...' : 'Buka Kunci Sekarang'}
                     </button>

@@ -1,6 +1,7 @@
 import { Session, UserRole } from '../types';
 import { db } from './firebaseConfig';
-import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
+// FIX: Updated firebase/firestore import to use the scoped package @firebase/firestore
+import { doc, getDoc, setDoc, deleteDoc } from '@firebase/firestore';
 
 const SESSIONS_COLLECTION = 'sessions';
 
@@ -43,7 +44,7 @@ export const deleteSession = async (sessionId: string): Promise<void> => {
      try {
         const sessionDocRef = doc(db, SESSIONS_COLLECTION, sessionId);
         await deleteDoc(sessionDocRef);
-    // Fix: Added missing opening brace for the catch block.
+    // FIX: Added missing closing brace for the try block.
     } catch (error) {
         console.error("Error deleting session:", error);
     }
