@@ -34,6 +34,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
     const [reports, setReports] = useState<Report[]>([]);
     const [isLoadingReports, setIsLoadingReports] = useState(true);
     const [settings, setSettings] = useState<WebsiteSettings>({ isFormDisabled: false, isMaintenanceLockEnabled: false, maintenancePin: '', fallbackOpenAIKey: '' });
+    const [savedSettings, setSavedSettings] = useState<WebsiteSettings>({ isFormDisabled: false, isMaintenanceLockEnabled: false, maintenancePin: '', fallbackOpenAIKey: '' });
     const [pinInput, setPinInput] = useState('');
     const [backupApiKeyInput, setBackupApiKeyInput] = useState('');
     const [activeTab, setActiveTab] = useState<'reports' | 'media' | 'settings' | 'debug'>('reports');
@@ -88,6 +89,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
 
         fetchGlobalSettings().then(initialSettings => {
             setSettings(initialSettings);
+            setSavedSettings(initialSettings);
             setPinInput(initialSettings.maintenancePin);
             setBackupApiKeyInput(initialSettings.fallbackOpenAIKey || '');
         });
@@ -140,12 +142,25 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
         }
         
         const newSettings = { ...settings, maintenancePin: pinInput, fallbackOpenAIKey: backupApiKeyInput };
+        
+        const wasPreviouslyLocked = savedSettings.isMaintenanceLockEnabled;
+        const isNowLocked = newSettings.isMaintenanceLockEnabled;
+
         setIsSaving(true);
         try {
             await updateGlobalSettings(newSettings);
             setSettings(newSettings);
+            setSavedSettings(newSettings); // Update the saved state to the new settings
             onSettingsChange(newSettings);
             alert('Selesai! Tetapan telah disimpan!');
+
+            // If the lock was just enabled, log out for security.
+            if (!wasPreviouslyLocked && isNowLocked) {
+                setTimeout(() => {
+                    alert('Anda telah log keluar untuk tujuan keselamatan selepas mengunci laman web.');
+                    onLogout();
+                }, 500); // Short delay to let user read the first alert
+            }
         } catch (error) {
             console.error("Failed to save settings:", error);
             alert('Gagal menyimpan tetapan. Sila cuba lagi.');
