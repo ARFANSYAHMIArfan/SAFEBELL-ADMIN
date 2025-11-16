@@ -1,15 +1,18 @@
 <div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+<img width="3780" height="1890" alt="PWA_GITHUB" src="https://github.com/user-attachments/assets/db12b222-2eb6-4d23-bb4f-2d1940dd5728" />
 </div>
 
 # S.A.F.E - SMART REPORTING SYSTEM
 ### [SMART ALERT FOR FAST EMERGENCY] (PWA VERSION)
 
+<div align="center">
 **Proudly presented by SM Sains Muzaffar Syah**
 
 > "Laporkan Kejadian Kecemasan Di Sini Secara Anonim Dan Selamat."
 >
 > *"Report Emergency Incidents Here Anonymously And Safely."*
+
+</div>
 
 ---
 
@@ -43,15 +46,7 @@ The system is split into two main components: the public reporting interface for
     * **Live API Monitoring:** Real-time status checks for all critical API connections (Firebase, Telegram, Cerebras, OpenAI).
     * **Permission Checks:** Verifies that browser permissions for Camera, Microphone, and Location are correctly configured.
 
-### 🖼️ Screenshots
 
-| Reporting Interface | Admin Login | Report Dashboard |
-| :---: | :---: | :---: |
-| ![The main anonymous reporting form where users can select Text, Audio, or Video.](image_820e05.png) | ![The secure login modal for 'Admin/Guru' (Admin/Teacher).](image_820e28.png) | ![The admin dashboard showing a list of incoming text reports with unique IDs and timestamps.](image_820e46.png) |
-
-| Admin Settings | System Status |
-| :---: | :---: |
-| ![The admin settings panel to disable the form, set a maintenance PIN, and configure API keys.](image_820ea5.png) | ![The system status page showing the connection status of all APIs and local storage.](image_820ea0.png) |
 
 ### 🙏 Acknowledgements
 
@@ -59,4 +54,4 @@ This project is a continuation of the **KitaBUDDY:#JOMCEGAHBULI** initiative.
 
 ---
 
-© 2023. KitaBUDDY:#JOMCEGAHBULI. Hak Cipta Terpelihara. Dikuasakan Oleh Teknologi AI Anonim.
+© 2025. KitaBUDDY:#JOMCEGAHBULI. Hak Cipta Terpelihara. Dikuasakan Oleh Teknologi AI Anonim.
