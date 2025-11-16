@@ -25,12 +25,24 @@ export const validateLogin = async (id: string, password: string): Promise<UserC
         const userDoc = querySnapshot.docs[0];
         const userData = userDoc.data() as UserCredentials;
 
-        if (userData.isLocked) {
-            console.log(`Login failed: User account "${id}" is locked.`);
-            return null; // Account is locked
-        }
+        const canSignInAfterLockout = userData.allowsigninafterlockout === true || userData.allowsigninafterlockout === 'true';
 
+        if (userData.isLocked && !canSignInAfterLockout) {
+            console.log(`Login failed: User account "${id}" is locked and not allowed to sign in.`);
+            return null; // Account is locked and override is not present
+        }
+        
         if (userData.password === password) {
+            // If the account was locked but allowed to sign in, unlock it and reset the flag.
+            if (userData.isLocked && canSignInAfterLockout) {
+                console.log(`Unlocking account for "${id}" after successful override login.`);
+                const userDocRef = doc(db, USERS_COLLECTION, userDoc.id);
+                await updateDoc(userDocRef, {
+                    isLocked: false,
+                    allowsigninafterlockout: false
+                });
+            }
+            
             return {
                 docId: userDoc.id,
                 id: userData.id,
@@ -72,6 +84,7 @@ export const getUserById = async (id: string): Promise<UserCredentials | null> =
             id: userData.id,
             role: userData.role,
             isLocked: userData.isLocked,
+            allowsigninafterlockout: userData.allowsigninafterlockout,
         };
     } catch (error) {
         console.error("Error fetching user by ID:", error);
@@ -95,6 +108,7 @@ export const getUsers = async (): Promise<UserCredentials[]> => {
                 docId: doc.id,
                 id: data.id,
                 role: data.role,
+                isLocked: data.isLocked || false,
             });
         });
         return users;

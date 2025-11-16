@@ -18,7 +18,8 @@ import {
 import { onSnapshot, collection, query, orderBy } from '@firebase/firestore';
 import { db } from '../services/firebaseConfig';
 import DebugPanel from './DebugPanel';
-import { getUsers, addUser, deleteUser as deleteUserService, getUserPassword, validateLogin } from '../services/userService';
+import { getUsers, addUser, deleteUser as deleteUserService, getUserPassword, validateLogin, lockUser, unlockUser } from '../services/userService';
+import AdminLockUnlockModal from './AdminLockUnlockModal';
 
 
 declare const saveAs: any;
@@ -73,6 +74,8 @@ export default function Dashboard({ session, userRole, onLogout, onNavigateHome,
     const [newUserId, setNewUserId] = useState('');
     const [newUserPassword, setNewUserPassword] = useState('');
     const [newUserRole, setNewUserRole] = useState<UserRole>('teacher');
+    const [userToModify, setUserToModify] = useState<UserCredentials | null>(null);
+    const [showLockUnlockModal, setShowLockUnlockModal] = useState(false);
 
     // Super Admin PIN Management State
     const [maintenancePinInput, setMaintenancePinInput] = useState('');
@@ -441,6 +444,32 @@ export default function Dashboard({ session, userRole, onLogout, onNavigateHome,
         }
     };
 
+    const handleLockUnlockClick = (user: UserCredentials) => {
+        setUserToModify(user);
+        setShowLockUnlockModal(true);
+    };
+
+    const handleConfirmLockUnlock = async (pin: string) => {
+        if (!userToModify) return;
+        if (pin !== settings.masterResetPin) {
+            throw new Error("PIN Induk Tetapan Semula tidak sah.");
+        }
+
+        const action = userToModify.isLocked ? unlockUser : lockUser;
+        const actionText = userToModify.isLocked ? 'dibuka' : 'dikunci';
+
+        try {
+            await action(userToModify.docId);
+            alert(`Akaun untuk ${userToModify.id} telah berjaya ${actionText}.`);
+            setShowLockUnlockModal(false);
+            setUserToModify(null);
+            fetchUsers(); // Refresh the list
+        } catch (error) {
+            console.error(`Failed to ${action} user:`, error);
+            alert(`Gagal ${actionText} akaun: ${(error as Error).message}`);
+        }
+    };
+
     const textReports = reports.filter(r => r.type === 'text');
     const mediaReports = reports.filter(r => r.type === 'audio' || r.type === 'video');
 
@@ -778,17 +807,30 @@ export default function Dashboard({ session, userRole, onLogout, onNavigateHome,
                                     <tr>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ID Pengguna</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Peranan</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
                                         <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tindakan</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                                     {isLoadingUsers ? (
-                                        <tr><td colSpan={3} className="text-center p-4">Memuatkan pengguna...</td></tr>
+                                        <tr><td colSpan={4} className="text-center p-4">Memuatkan pengguna...</td></tr>
                                     ) : filteredAdminUsers.map(user => (
                                         <tr key={user.docId}>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{user.id}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{getRoleDisplayName(user.role)}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                                    user.isLocked 
+                                                    ? 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300' 
+                                                    : 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300'
+                                                }`}>
+                                                    {user.isLocked ? 'Terkunci' : 'Aktif'}
+                                                </span>
+                                            </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                                <button onClick={() => handleLockUnlockClick(user)} disabled={user.id === session?.userId} className={`font-semibold disabled:opacity-50 disabled:cursor-not-allowed ${user.isLocked ? 'text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-200' : 'text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-200'}`}>
+                                                    {user.isLocked ? 'Buka Kunci' : 'Kunci'}
+                                                </button>
                                                 <button onClick={() => handleAdminAction('view', user)} className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-200">Lihat Kata Laluan</button>
                                                 <button onClick={() => handleAdminAction('delete', user)} disabled={user.id === session?.userId} className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-200 disabled:opacity-50 disabled:cursor-not-allowed">Padam</button>
                                             </td>
@@ -925,6 +967,14 @@ export default function Dashboard({ session, userRole, onLogout, onNavigateHome,
                         </form>
                     </div>
                 </div>
+            )}
+             {showLockUnlockModal && userToModify && (
+                <AdminLockUnlockModal
+                    user={userToModify}
+                    action={userToModify.isLocked ? 'unlock' : 'lock'}
+                    onClose={() => { setShowLockUnlockModal(false); setUserToModify(null); }}
+                    onConfirm={handleConfirmLockUnlock}
+                />
             )}
         </div>
     );

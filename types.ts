@@ -36,6 +36,7 @@ export interface UserCredentials {
     role: UserRole;
     password?: string;
     isLocked?: boolean;
+    allowsigninafterlockout?: boolean | string;
 }
 
 

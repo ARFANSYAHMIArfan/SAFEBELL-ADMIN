@@ -28,8 +28,13 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
         } else {
             // Check if the login failed because the account is locked.
             const potentialUser = await getUserById(userId);
-            if (potentialUser && potentialUser.isLocked) {
-                setError("Akaun ini dikunci kerana percubaan log masuk yang gagal. Sila hubungi pentadbir.");
+            if (potentialUser?.isLocked) {
+                const canSignInAfterLockout = potentialUser.allowsigninafterlockout === true || potentialUser.allowsigninafterlockout === 'true';
+                if (canSignInAfterLockout) {
+                    setError(UI_TEXT.LOGIN_ERROR); // If override is enabled, the password must have been wrong.
+                } else {
+                    setError("Akaun ini dikunci kerana percubaan log masuk yang gagal. Sila hubungi pentadbir.");
+                }
             } else {
                  setError(UI_TEXT.LOGIN_ERROR);
             }
