@@ -1,8 +1,28 @@
 import { Report } from '../types';
-import { db } from './firebaseConfig';
+import { db, storage } from './firebaseConfig';
 import { collection, getDocs, doc, setDoc, deleteDoc, query, orderBy, writeBatch } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const REPORTS_COLLECTION = 'reports';
+
+/**
+ * Uploads a media file to Firebase Storage.
+ * @param fileBlob The Blob to upload.
+ * @param reportId The ID of the report to associate the file with.
+ * @returns A promise that resolves to the public download URL of the file.
+ */
+export const uploadMedia = async (fileBlob: Blob, reportId: string): Promise<string> => {
+    try {
+        const fileExtension = fileBlob.type.split('/')[1] || 'bin';
+        const storageRef = ref(storage, `reports/${reportId}.${fileExtension}`);
+        const snapshot = await uploadBytes(storageRef, fileBlob);
+        const downloadURL = await getDownloadURL(snapshot.ref);
+        return downloadURL;
+    } catch (error) {
+        console.error("Error uploading media to Firebase Storage:", error);
+        throw new Error('Gagal memuat naik fail media.');
+    }
+};
 
 /**
  * Fetches all reports from the Firestore backend, ordered by newest first.

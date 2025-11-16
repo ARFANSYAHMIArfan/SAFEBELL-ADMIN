@@ -6,7 +6,6 @@ import {
     ShareIcon, DownloadIcon, ArchiveBoxIcon, BellIcon, ServerIcon, 
     DatabaseIcon, CheckCircleIcon, XCircleIcon, ExclamationTriangleIcon, UploadIcon 
 } from './icons';
-// FIX: Import 'getReports' to be used for downloading all reports.
 import { deleteReport, mergeAndSaveReports, getReports } from '../utils/storage';
 import { fetchGlobalSettings, updateGlobalSettings } from '../services/settingsService';
 import { downloadAsPdf, downloadAsDocx } from '../services/downloadService';
@@ -299,14 +298,38 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole, onLogout, onNavigateHom
                         </button>
                         {expandedReportId === report.id && (
                             <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-                                <div className="space-y-3">
+                                <div className="space-y-4">
                                     <div>
                                         <h4 className="font-semibold text-sm text-gray-700 dark:text-gray-300">Butiran Laporan:</h4>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap font-mono bg-white dark:bg-gray-800 p-2 rounded border dark:border-gray-600">{report.content}</p>
+                                        <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap font-mono bg-white dark:bg-gray-800 p-2 rounded border dark:border-gray-600 mt-1">{report.content}</p>
                                     </div>
+
+                                    {(report.type === 'audio' || report.type === 'video') && (
+                                        <div>
+                                            <h4 className="font-semibold text-sm text-gray-700 dark:text-gray-300">Pratonton Media:</h4>
+                                            <div className="mt-2">
+                                                {report.mediaUrl ? (
+                                                    report.type === 'audio' ? (
+                                                        <audio key={report.id} controls className="w-full" src={report.mediaUrl}>
+                                                            Pelayar anda tidak menyokong elemen audio.
+                                                        </audio>
+                                                    ) : (
+                                                        <video key={report.id} controls playsInline className="w-full max-w-md mx-auto rounded-lg bg-black" src={report.mediaUrl}>
+                                                            Pelayar anda tidak menyokong tag video.
+                                                        </video>
+                                                    )
+                                                ) : (
+                                                    <p className="text-sm italic text-gray-500 dark:text-gray-400">
+                                                        Pratonton media tidak tersedia. Fail mungkin telah dihantar sebagai rujukan sahaja.
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <div>
                                         <h4 className="font-semibold text-sm text-gray-700 dark:text-gray-300">Analisis AI:</h4>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap bg-white dark:bg-gray-800 p-2 rounded border dark:border-gray-600">{report.analysis}</p>
+                                        <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap bg-white dark:bg-gray-800 p-2 rounded border dark:border-gray-600 mt-1">{report.analysis}</p>
                                     </div>
                                     <div className="flex items-center space-x-2 pt-2">
                                         <button onClick={() => handleShareReport(report)} className="flex items-center space-x-2 px-3 py-1.5 text-xs font-semibold rounded-lg shadow-sm transition-colors duration-200 bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/50 dark:text-blue-300 dark:hover:bg-blue-900">

@@ -1,5 +1,6 @@
 import { initializeApp, FirebaseApp } from 'firebase/app';
 import { getFirestore, Firestore } from 'firebase/firestore';
+import { getStorage, FirebaseStorage } from 'firebase/storage';
 
 // Your web app's Firebase configuration from your Firebase project settings
 const firebaseConfig = {
@@ -15,6 +16,7 @@ const firebaseConfig = {
 
 let app: FirebaseApp;
 let db: Firestore;
+let storage: FirebaseStorage;
 let firebaseError: Error | null = null;
 
 try {
@@ -27,10 +29,11 @@ try {
   
   app = initializeApp(firebaseConfig);
   db = getFirestore(app);
+  storage = getStorage(app);
 
 } catch (e) {
   firebaseError = e as Error;
   console.error("Firebase initialization failed:", firebaseError);
 }
 
-export { app, db, firebaseError };
+export { app, db, storage, firebaseError };

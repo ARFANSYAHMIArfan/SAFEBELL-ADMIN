@@ -7,6 +7,7 @@ import VideoRecorder from './VideoRecorder';
 import { analyzeReportWithAI } from '../services/geminiService';
 import { sendTextReport, sendAudioReport, sendVideoReport } from '../services/telegramService';
 import { addReport } from '../utils/storage';
+import { uploadMedia } from '../services/reportService';
 
 interface ReportFormProps {
     settings: WebsiteSettings;
@@ -42,8 +43,20 @@ const ReportForm: React.FC<ReportFormProps> = ({ settings }) => {
     setSuccess(null);
 
     let analysisResult = '';
+    let mediaUrl: string | undefined = undefined;
+    const reportId = Date.now().toString(36) + Math.random().toString(36).substring(2);
     
     try {
+      if ((reportType === 'audio' || reportType === 'video') && mediaBlob) {
+        try {
+            setLoadingMessage('Memuat naik media...');
+            mediaUrl = await uploadMedia(mediaBlob, reportId);
+        } catch (uploadError) {
+            console.error("Media upload failed:", uploadError);
+            // Non-fatal: the report will be saved without a media URL.
+        }
+      }
+
       if (text.trim()) {
         setLoadingMessage(UI_TEXT.ANALYZING_REPORT);
         try {
@@ -57,14 +70,14 @@ const ReportForm: React.FC<ReportFormProps> = ({ settings }) => {
 
       setLoadingMessage(UI_TEXT.SUBMITTING_REPORT);
       
-      const reportId = Date.now().toString(36) + Math.random().toString(36).substring(2);
       const caption = `*Laporan Kecemasan Baru Diterima*\n*ID Laporan:* \`${reportId}\`\n\n*Jenis:* ${reportType.toUpperCase()}\n\n*Butiran Laporan:*\n${text}\n\n---\n\n*Analisis AI (Cerebras/OpenAI):*\n${analysisResult}`;
       const newReport: Report = {
           id: reportId,
           type: reportType,
-          content: reportType === 'text' ? text : `[Laporan ${reportType} - Media tidak disimpan dalam penyemak imbas]`,
+          content: reportType === 'text' ? text : `[Laporan ${reportType} - Media dilampirkan]`,
           analysis: analysisResult,
           timestamp: new Date().toISOString(),
+          mediaUrl: mediaUrl,
       };
 
       let saveError: Error | null = null;
@@ -182,7 +195,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ settings }) => {
           >
             {isLoading ? (
               <>
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>

@@ -9,6 +9,7 @@ export interface Report {
     // For text reports, content is the text. For media, it's a placeholder.
     content: string; 
     analysis: string;
+    mediaUrl?: string;
 }
 
 export interface WebsiteSettings {
