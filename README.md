@@ -44,16 +44,6 @@ The system is split into two main components: the public reporting interface for
     * **Live API Monitoring:** Real-time status checks for all critical API connections (Firebase, Telegram, Cerebras, OpenAI).
     * **Permission Checks:** Verifies that browser permissions for Camera, Microphone, and Location are correctly configured.
 
-### 🖼️ Screenshots
-
-| Reporting Interface | Admin Login | Report Dashboard |
-| :---: | :---: | :---: |
-| ![The main anonymous reporting form where users can select Text, Audio, or Video.](image_820e05.png) | ![The secure login modal for 'Admin/Guru' (Admin/Teacher).](image_820e28.png) | ![The admin dashboard showing a list of incoming text reports with unique IDs and timestamps.](image_820e46.png) |
-
-| Admin Settings | System Status |
-| :---: | :---: |
-| ![The admin settings panel to disable the form, set a maintenance PIN, and configure API keys.](image_820ea5.png) | ![The system status page showing the connection status of all APIs and local storage.](image_820ea0.png) |
-
 ### 🙏 Acknowledgements
 
 This project is a continuation of the **KitaBUDDY:#JOMCEGAHBULI** initiative.
