@@ -51,6 +51,7 @@ export const UI_TEXT = {
   API_STATUS: "Status API & Konfigurasi",
   TELEGRAM_API: "API Telegram",
   CEREBRAS_API: "API Cerebras",
+  REQUESTY_API: "API Requesty",
   OPENAI_API: "API OpenAI (Sandaran)",
   FIREBASE_STATUS: "Status Firebase",
   LOCAL_STORAGE: "Storan Tempatan",
@@ -82,6 +83,11 @@ export const TELEGRAM_CONFIG = {
 
 export const CEREBRAS_CONFIG = {
     API_KEY: "csk-f6evm2xmvnrt349cpce5k4tnvt3ne35knnc3jy96kpfh8cp6"
+};
+
+export const REQUESTY_CONFIG = {
+    API_KEY: "rqsty-sk-EMQjRn+pRGyxH0yfCTnLPzS94ekXzmv600LGxMxuQ1rAPuQjGIDcEEc6xd22FR4M+QHDch8UEaXDQGsZoNsa4ZX/0P8nK0IuqakdfHmmzQQ=",
+    BASE_URL: "https://router.requesty.ai/v1"
 };
 
 export const OPENAI_CONFIG = {

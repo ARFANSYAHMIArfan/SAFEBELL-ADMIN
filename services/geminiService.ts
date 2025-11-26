@@ -1,4 +1,5 @@
 import { analyzeReportWithOpenAI } from './openaiService';
+import { analyzeReportWithRequesty } from './requestyService';
 import { CEREBRAS_CONFIG } from '../constants';
 import { WebsiteSettings } from '../types';
 import { addLog } from './logService';
@@ -50,18 +51,26 @@ export const analyzeReportWithAI = async (reportText: string, settings?: Website
         addLog('info', 'Cerebras analysis successful.');
         return analysis;
     } catch (cerebrasError) {
-      addLog('warn', 'Cerebras API call failed, falling back to OpenAI.', { error: (cerebrasError as Error).message });
-      // Fall through to the OpenAI logic below
+      addLog('warn', 'Cerebras API call failed, falling back to Requesty.', { error: (cerebrasError as Error).message });
+      // Fall through to Requesty
     }
   } else {
-    addLog('warn', 'Cerebras API key not found. Attempting to use OpenAI as primary.');
+    addLog('warn', 'Cerebras API key not found. Attempting to use Requesty as primary.');
+  }
+
+  // --- Secondary: Try Requesty ---
+  try {
+    return await analyzeReportWithRequesty(reportText);
+  } catch (requestyError) {
+    addLog('warn', 'Requesty API call failed, falling back to OpenAI.', { error: (requestyError as Error).message });
+    // Fall through to OpenAI
   }
   
-  // --- Fallback: Try OpenAI ---
+  // --- Final Fallback: Try OpenAI ---
   try {
     return await analyzeReportWithOpenAI(reportText, fallbackOpenAIKey);
   } catch (openaiError) {
     addLog('error', 'OpenAI fallback also failed.', { error: (openaiError as Error).message });
-    throw new Error("Failed to get analysis from Cerebras and OpenAI backup.");
+    throw new Error("Failed to get analysis from Cerebras, Requesty, and OpenAI backup.");
   }
 };

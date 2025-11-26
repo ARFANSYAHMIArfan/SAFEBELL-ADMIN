@@ -1,4 +1,4 @@
-import { TELEGRAM_CONFIG, OPENAI_CONFIG, CEREBRAS_CONFIG, UI_TEXT } from '../constants';
+import { TELEGRAM_CONFIG, OPENAI_CONFIG, CEREBRAS_CONFIG, REQUESTY_CONFIG, UI_TEXT } from '../constants';
 import { getReports } from './storage';
 import { firebaseError } from '../services/firebaseConfig';
 import { fetchGlobalSettings } from '../services/settingsService';
@@ -13,6 +13,7 @@ interface StatusItem {
 export interface SystemStatus {
   telegram: StatusItem;
   cerebras: StatusItem;
+  requesty: StatusItem;
   openai: StatusItem;
   firebase: StatusItem;
   storage: StatusItem;
@@ -56,6 +57,16 @@ export const checkTelegramApi = async (): Promise<StatusItem> => {
  */
 export const checkCerebrasConfig = (): StatusItem => {
   if (CEREBRAS_CONFIG.API_KEY && CEREBRAS_CONFIG.API_KEY.startsWith('csk-')) {
+    return { status: 'ok', message: UI_TEXT.STATUS_OK };
+  }
+  return { status: 'warn', message: UI_TEXT.STATUS_UNCONFIGURED };
+};
+
+/**
+ * Checks if the Requesty API key is configured.
+ */
+export const checkRequestyConfig = (): StatusItem => {
+  if (REQUESTY_CONFIG.API_KEY && REQUESTY_CONFIG.API_KEY.startsWith('rqsty-')) {
     return { status: 'ok', message: UI_TEXT.STATUS_OK };
   }
   return { status: 'warn', message: UI_TEXT.STATUS_UNCONFIGURED };

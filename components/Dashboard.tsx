@@ -11,7 +11,7 @@ import { deleteReport, mergeAndSaveReports, getReports } from '../utils/storage'
 import { fetchGlobalSettings, updateGlobalSettings } from '../services/settingsService';
 import { downloadAsPdf, downloadAsDocx, downloadAsCsv } from '../services/downloadService';
 import { 
-    checkTelegramApi, checkCerebrasConfig, checkOpenAIConfig, 
+    checkTelegramApi, checkCerebrasConfig, checkOpenAIConfig, checkRequestyConfig,
     getReportCount, checkPermissions, SystemStatus, checkFirebaseStatus
 } from '../utils/statusCheck';
 // FIX: Updated firebase/firestore import to use the scoped package @firebase/firestore
@@ -172,11 +172,13 @@ export default function Dashboard({ session, userRole, onLogout, onNavigateHome,
             checkOpenAIConfig(),
         ]);
         const cerebras = checkCerebrasConfig();
+        const requesty = checkRequestyConfig();
         const firebase = checkFirebaseStatus();
         
         setSystemStatus({
             telegram: tg,
             cerebras,
+            requesty,
             openai,
             firebase,
             storage: reportCount,
@@ -705,6 +707,10 @@ export default function Dashboard({ session, userRole, onLogout, onNavigateHome,
                                 <div className="flex items-center justify-between text-sm">
                                     <span className="flex items-center"><ServerIcon className="w-4 h-4 mr-2" />{UI_TEXT.CEREBRAS_API}</span>
                                     {renderStatusBadge(systemStatus.cerebras)}
+                                </div>
+                                <div className="flex items-center justify-between text-sm">
+                                    <span className="flex items-center"><ServerIcon className="w-4 h-4 mr-2" />{UI_TEXT.REQUESTY_API}</span>
+                                    {renderStatusBadge(systemStatus.requesty)}
                                 </div>
                                  <div className="flex items-center justify-between text-sm">
                                     <span className="flex items-center"><ServerIcon className="w-4 h-4 mr-2" />{UI_TEXT.OPENAI_API}</span>
