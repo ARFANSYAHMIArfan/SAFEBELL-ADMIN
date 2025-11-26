@@ -78,7 +78,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ settings }) => {
           content: reportType === 'text' ? text : `[Laporan ${reportType} - Media dilampirkan]`,
           analysis: analysisResult,
           timestamp: new Date().toISOString(),
-          mediaUrl: mediaUrl,
+          ...(mediaUrl ? { mediaUrl } : {}),
       };
 
       let saveError: Error | null = null;
