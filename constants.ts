@@ -72,6 +72,7 @@ export const UI_TEXT = {
   DEBUG_PANEL_DESC: "Log peristiwa sistem masa nyata untuk penyelesaian masalah.",
   CLEAR_LOGS: "Kosongkan Log",
   REFRESH_LOGS: "Segar Semula Log",
+  EXPORT_LOGS: "Eksport Log JSON",
 };
 
 export const TELEGRAM_CONFIG = {

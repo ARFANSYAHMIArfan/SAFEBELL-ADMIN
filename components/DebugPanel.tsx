@@ -1,8 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { logs, clearLogs } from '../services/logService';
 import { UI_TEXT } from '../constants';
-import { RefreshIcon } from './icons';
+import { RefreshIcon, DownloadIcon } from './icons';
 import { LogEntry } from '../types';
+
+declare const saveAs: any;
 
 const DebugPanel: React.FC = () => {
     const [logEntries, setLogEntries] = useState<LogEntry[]>([...logs]);
@@ -14,6 +17,13 @@ const DebugPanel: React.FC = () => {
     const handleClearLogs = () => {
         clearLogs();
         refreshLogs();
+    };
+
+    const handleExportLogs = () => {
+        const jsonLogs = JSON.stringify(logs, null, 2);
+        const blob = new Blob([jsonLogs], { type: "application/json" });
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        saveAs(blob, `safe_app_logs_${timestamp}.json`);
     };
 
     useEffect(() => {
@@ -48,6 +58,13 @@ const DebugPanel: React.FC = () => {
                 >
                     <RefreshIcon className="w-4 h-4" />
                     <span>{UI_TEXT.REFRESH_LOGS}</span>
+                </button>
+                <button
+                    onClick={handleExportLogs}
+                    className="flex items-center space-x-2 px-4 py-2 text-sm font-semibold rounded-lg shadow-sm transition-colors duration-200 bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/50 dark:text-blue-300 dark:hover:bg-blue-900"
+                >
+                    <DownloadIcon className="w-4 h-4" />
+                    <span>{UI_TEXT.EXPORT_LOGS}</span>
                 </button>
                 <button
                     onClick={handleClearLogs}
