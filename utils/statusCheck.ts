@@ -67,17 +67,44 @@ export const checkCerebrasConfig = async (): Promise<StatusItem> => {
 };
 
 /**
- * Checks if the Requesty API key is configured.
+ * Checks if the Requesty API key is configured and validates connection.
  */
 export const checkRequestyConfig = async (): Promise<StatusItem> => {
   const settings = await fetchGlobalSettings();
-  const hasDynamicKey = settings.fallbackRequestyKey && settings.fallbackRequestyKey.startsWith('rqsty-');
-  const hasHardcodedKey = REQUESTY_CONFIG.API_KEY && REQUESTY_CONFIG.API_KEY.startsWith('rqsty-');
+  // Prioritize dynamic key from settings, fallback to hardcoded
+  const apiKey = settings.fallbackRequestyKey || REQUESTY_CONFIG.API_KEY;
 
-  if (hasDynamicKey || hasHardcodedKey) {
-     return { status: 'ok', message: UI_TEXT.STATUS_OK };
+  if (!apiKey || !apiKey.startsWith('rqsty-')) {
+     return { status: 'warn', message: UI_TEXT.STATUS_UNCONFIGURED };
   }
-  return { status: 'warn', message: UI_TEXT.STATUS_UNCONFIGURED };
+
+  // Perform a real connection test
+  try {
+    const response = await fetch(`${REQUESTY_CONFIG.BASE_URL}/chat/completions`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+            model: "policy/kitabuddy-latest",
+            messages: [{ role: "user", content: "Ping" }],
+            max_tokens: 1
+        }),
+    });
+
+    if (response.ok) {
+        return { status: 'ok', message: UI_TEXT.STATUS_CONNECTED };
+    } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Requesty Test Failed:", response.status, errorData);
+        // Return error code to UI
+        return { status: 'error', message: `Ralat ${response.status}` };
+    }
+  } catch (error) {
+      console.error("Requesty Connection Error:", error);
+      return { status: 'error', message: 'Gagal Disambung' };
+  }
 };
 
 /**
