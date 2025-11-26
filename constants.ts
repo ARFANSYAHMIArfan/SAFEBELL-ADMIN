@@ -88,7 +88,7 @@ export const CEREBRAS_CONFIG = {
 };
 
 export const REQUESTY_CONFIG = {
-    API_KEY: "rqsty-sk-EMQjRn+pRGyxH0yfCTnLPzS94ekXzmv600LGxMxuQ1rAPuQjGIDcEEc6xd22FR4M+QHDch8UEaXDQGsZoNsa4ZX/0P8nK0IuqakdfHmmzQQ=",
+    API_KEY: "rqsty-sk-iCiPgRpkTwWJA0eVU7/jHrN4/80SCdYApvLv/M5rX4Frm/v7gpwpWjSdt16nd0VXOO10KvUaQH3WemFw7/oFsVNhUcFGLTxIn7gq3UW+5Qo=",
     BASE_URL: "https://router.requesty.ai/v1"
 };
 

@@ -36,7 +36,7 @@ export const analyzeReportWithRequesty = async (reportText: string, dynamicApiKe
                 'Authorization': `Bearer ${API_KEY}`,
             },
             body: JSON.stringify({
-                model: "gpt-4o", // Assuming Requesty router maps this correctly or supports it
+                model: "policy/kitabuddy-latest", 
                 messages: [{ role: "user", content: prompt }],
                 temperature: 0.5,
             }),
