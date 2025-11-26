@@ -40,6 +40,7 @@ export const UI_TEXT = {
   DOWNLOAD_REPORT: "Muat Turun Laporan",
   SAVE_AS_PDF: "Simpan sebagai PDF",
   SAVE_AS_DOCX: "Simpan sebagai DOCX",
+  SAVE_AS_CSV: "Simpan sebagai CSV",
   DOWNLOAD_ALL_REPORTS: "Muat Turun Semua Laporan",
   CONFIRM_ACTION: "Sahkan Tindakan",
   ENTER_PIN_PROMPT: "Sila masukkan PIN keselamatan untuk memuat turun semua rekod laporan.",

@@ -67,3 +67,30 @@ export const downloadAsDocx = (report: Report) => {
         saveAs(blob, `Laporan-${report.id}.docx`);
     });
 };
+
+const escapeCsvValue = (value: string | undefined | null): string => {
+  if (value === undefined || value === null) {
+    return '';
+  }
+  const str = String(value);
+  if (/[",\n]/.test(str)) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+};
+
+export const downloadAsCsv = (report: Report) => {
+    const headers = ['id', 'timestamp', 'type', 'content', 'analysis', 'mediaUrl'];
+    const row = [
+        escapeCsvValue(report.id),
+        escapeCsvValue(report.timestamp),
+        escapeCsvValue(report.type),
+        escapeCsvValue(report.content),
+        escapeCsvValue(report.analysis),
+        escapeCsvValue(report.mediaUrl),
+    ].join(',');
+
+    const csvContent = headers.join(',') + '\n' + row;
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    saveAs(blob, `Laporan-${report.id}.csv`);
+};

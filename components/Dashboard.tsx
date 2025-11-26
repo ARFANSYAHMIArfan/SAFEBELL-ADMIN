@@ -9,7 +9,7 @@ import {
 } from './icons';
 import { deleteReport, mergeAndSaveReports, getReports } from '../utils/storage';
 import { fetchGlobalSettings, updateGlobalSettings } from '../services/settingsService';
-import { downloadAsPdf, downloadAsDocx } from '../services/downloadService';
+import { downloadAsPdf, downloadAsDocx, downloadAsCsv } from '../services/downloadService';
 import { 
     checkTelegramApi, checkCerebrasConfig, checkOpenAIConfig, 
     getReportCount, checkPermissions, SystemStatus, checkFirebaseStatus
@@ -541,12 +541,15 @@ export default function Dashboard({ session, userRole, onLogout, onNavigateHome,
                                                 <span>{UI_TEXT.DOWNLOAD_REPORT}</span>
                                             </button>
                                             {showDownloadOptions === report.id && (
-                                                <div className="absolute bottom-full left-0 mb-2 w-40 bg-white dark:bg-gray-800 border dark:border-gray-600 rounded-lg shadow-lg z-10">
+                                                <div className="absolute bottom-full left-0 mb-2 w-48 bg-white dark:bg-gray-800 border dark:border-gray-600 rounded-lg shadow-lg z-10">
                                                     <button onClick={() => { downloadAsPdf(report); setShowDownloadOptions(null); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
                                                         {UI_TEXT.SAVE_AS_PDF}
                                                     </button>
                                                     <button onClick={() => { downloadAsDocx(report); setShowDownloadOptions(null); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
                                                         {UI_TEXT.SAVE_AS_DOCX}
+                                                    </button>
+                                                    <button onClick={() => { downloadAsCsv(report); setShowDownloadOptions(null); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                                        {UI_TEXT.SAVE_AS_CSV}
                                                     </button>
                                                 </div>
                                             )}
