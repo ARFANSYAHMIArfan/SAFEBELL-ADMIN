@@ -17,6 +17,8 @@ export interface WebsiteSettings {
     isMaintenanceLockEnabled: boolean;
     maintenancePin: string;
     fallbackOpenAIKey?: string;
+    fallbackCerebrasKey?: string;
+    fallbackRequestyKey?: string;
     adminDownloadPin?: string;
     adminActionPin?: string;
     masterResetPin?: string;

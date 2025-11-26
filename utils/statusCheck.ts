@@ -55,8 +55,12 @@ export const checkTelegramApi = async (): Promise<StatusItem> => {
 /**
  * Checks if the Cerebras API key is configured.
  */
-export const checkCerebrasConfig = (): StatusItem => {
-  if (CEREBRAS_CONFIG.API_KEY && CEREBRAS_CONFIG.API_KEY.startsWith('csk-')) {
+export const checkCerebrasConfig = async (): Promise<StatusItem> => {
+  const settings = await fetchGlobalSettings();
+  const hasDynamicKey = settings.fallbackCerebrasKey && settings.fallbackCerebrasKey.startsWith('csk-');
+  const hasHardcodedKey = CEREBRAS_CONFIG.API_KEY && CEREBRAS_CONFIG.API_KEY.startsWith('csk-');
+
+  if (hasDynamicKey || hasHardcodedKey) {
     return { status: 'ok', message: UI_TEXT.STATUS_OK };
   }
   return { status: 'warn', message: UI_TEXT.STATUS_UNCONFIGURED };
@@ -65,9 +69,13 @@ export const checkCerebrasConfig = (): StatusItem => {
 /**
  * Checks if the Requesty API key is configured.
  */
-export const checkRequestyConfig = (): StatusItem => {
-  if (REQUESTY_CONFIG.API_KEY && REQUESTY_CONFIG.API_KEY.startsWith('rqsty-')) {
-    return { status: 'ok', message: UI_TEXT.STATUS_OK };
+export const checkRequestyConfig = async (): Promise<StatusItem> => {
+  const settings = await fetchGlobalSettings();
+  const hasDynamicKey = settings.fallbackRequestyKey && settings.fallbackRequestyKey.startsWith('rqsty-');
+  const hasHardcodedKey = REQUESTY_CONFIG.API_KEY && REQUESTY_CONFIG.API_KEY.startsWith('rqsty-');
+
+  if (hasDynamicKey || hasHardcodedKey) {
+     return { status: 'ok', message: UI_TEXT.STATUS_OK };
   }
   return { status: 'warn', message: UI_TEXT.STATUS_UNCONFIGURED };
 };

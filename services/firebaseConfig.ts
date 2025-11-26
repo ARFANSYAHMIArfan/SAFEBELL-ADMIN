@@ -1,7 +1,7 @@
 // FIX: Updated firebase/app import to use the scoped package @firebase/app
 import { initializeApp, FirebaseApp } from '@firebase/app';
 // FIX: Updated firebase/firestore import to use the scoped package @firebase/firestore
-import { getFirestore, Firestore } from '@firebase/firestore';
+import { getFirestore, Firestore, initializeFirestore } from '@firebase/firestore';
 // FIX: Updated firebase/storage import to use the scoped package @firebase/storage
 import { getStorage, FirebaseStorage } from '@firebase/storage';
 
@@ -31,7 +31,10 @@ try {
   }
   
   app = initializeApp(firebaseConfig);
-  db = getFirestore(app);
+  // Use initializeFirestore with experimentalForceLongPolling to avoid transport errors
+  db = initializeFirestore(app, {
+    experimentalForceLongPolling: true
+  });
   storage = getStorage(app);
 
 } catch (e) {

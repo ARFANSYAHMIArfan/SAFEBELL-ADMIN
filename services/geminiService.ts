@@ -4,7 +4,7 @@ import { CEREBRAS_CONFIG } from '../constants';
 import { WebsiteSettings } from '../types';
 import { addLog } from './logService';
 
-const CEREBRAS_API_KEY = CEREBRAS_CONFIG.API_KEY;
+const HARDCODED_CEREBRAS_KEY = CEREBRAS_CONFIG.API_KEY;
 
 export const analyzeReportWithAI = async (reportText: string, settings?: WebsiteSettings): Promise<string> => {
   const prompt = `
@@ -22,16 +22,20 @@ export const analyzeReportWithAI = async (reportText: string, settings?: Website
   `;
   
   const fallbackOpenAIKey = settings?.fallbackOpenAIKey;
+  const cerebrasKey = settings?.fallbackCerebrasKey || HARDCODED_CEREBRAS_KEY;
+  const requestyKey = settings?.fallbackRequestyKey;
 
   // --- Primary: Try Cerebras ---
-  if (CEREBRAS_API_KEY) {
+  if (cerebrasKey) {
     try {
-        addLog('info', 'Attempting analysis with Cerebras...');
+        const source = settings?.fallbackCerebrasKey ? 'Admin-Configured Key' : 'Hardcoded Key';
+        addLog('info', `Attempting analysis with Cerebras using ${source}...`);
+        
         const response = await fetch("https://api.cerebras.com/v1/chat/completions", {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${CEREBRAS_API_KEY}`,
+                'Authorization': `Bearer ${cerebrasKey}`,
             },
             body: JSON.stringify({
                 model: "btlm-3b-8k-chat",
@@ -60,7 +64,7 @@ export const analyzeReportWithAI = async (reportText: string, settings?: Website
 
   // --- Secondary: Try Requesty ---
   try {
-    return await analyzeReportWithRequesty(reportText);
+    return await analyzeReportWithRequesty(reportText, requestyKey);
   } catch (requestyError) {
     addLog('warn', 'Requesty API call failed, falling back to OpenAI.', { error: (requestyError as Error).message });
     // Fall through to OpenAI

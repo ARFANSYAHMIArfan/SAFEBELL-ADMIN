@@ -1,9 +1,11 @@
 import { REQUESTY_CONFIG } from '../constants';
 import { addLog } from './logService';
 
-const { API_KEY, BASE_URL } = REQUESTY_CONFIG;
+const { API_KEY: HARDCODED_API_KEY, BASE_URL } = REQUESTY_CONFIG;
 
-export const analyzeReportWithRequesty = async (reportText: string): Promise<string> => {
+export const analyzeReportWithRequesty = async (reportText: string, dynamicApiKey?: string): Promise<string> => {
+    const API_KEY = dynamicApiKey || HARDCODED_API_KEY;
+
     if (!API_KEY) {
         addLog('warn', 'Requesty analysis skipped: No API key available.');
         throw new Error("Requesty API key not configured.");
@@ -24,7 +26,8 @@ export const analyzeReportWithRequesty = async (reportText: string): Promise<str
   `;
 
     try {
-        addLog('info', 'Attempting analysis with Requesty...');
+        const source = dynamicApiKey ? 'Admin-Configured Key' : 'Hardcoded Key';
+        addLog('info', `Attempting analysis with Requesty using ${source}...`);
         
         const response = await fetch(`${BASE_URL}/chat/completions`, {
             method: 'POST',
