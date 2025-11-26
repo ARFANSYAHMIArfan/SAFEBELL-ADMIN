@@ -63,8 +63,9 @@ const ReportForm: React.FC<ReportFormProps> = ({ settings }) => {
           analysisResult = await analyzeReportWithAI(text, settings);
         } catch (analysisError) {
             console.error("AI analysis failed:", analysisError);
-            setError(UI_TEXT.ERROR_ANALYSIS);
-            analysisResult = "Analisis AI tidak dapat dijalankan.";
+            // BYPASS AI: Jangan tetapkan error, teruskan proses penghantaran.
+            // setError(UI_TEXT.ERROR_ANALYSIS); 
+            analysisResult = "Analisis AI tidak tersedia. Laporan dihantar terus tanpa analisis.";
         }
       }
 
